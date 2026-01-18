@@ -7,11 +7,8 @@ st.set_page_config(page_title="Team Onboarding Hub", layout="wide")
 
 # --- 1. DEFINE ROLES & CURRICULUMS ---
 
-# Common Admin Tasks (Everyone does these)
-COMMON_TASKS = [
-    {"Category": "HR & Admin", "Task": "Submit Bank Details", "Type": "Checklist"},
-    {"Category": "HR & Admin", "Task": "Sign Acceptable Use Policy", "Type": "Checklist"},
-]
+# Common Tasks (Now Empty/Generic - HR tasks removed)
+COMMON_TASKS = []
 
 # --- CUSTOMIZED SPARE PARTS CURRICULUM ---
 SPARE_PARTS_TASKS = [
@@ -39,28 +36,27 @@ SPARE_PARTS_TASKS = [
     {"Category": "Process Knowledge", "Task": "Learn: Reman Number Creation", "Type": "SOP Study"},
 ]
 
-# Service Engineer Tasks (Kept simple for now)
+# Service Engineer Tasks
 SERVICE_ENG_TASKS = [
     {"Category": "Safety", "Task": "LOTO (Lock Out Tag Out) Certification", "Type": "Module"},
     {"Category": "Field Skills", "Task": "Field Service Report Writing", "Type": "Module"},
     {"Category": "Technical", "Task": "Reading Hydraulic Schematics", "Type": "Module"},
 ]
 
-# --- SHAREPOINT LINKS (Your Requirement #5) ---
+# --- SHAREPOINT LINKS (HR Link Removed) ---
 IMPORTANT_LINKS = {
     "SharePoint Home": "https://yourcompany.sharepoint.com/sites/home",
     "Engineering Specs": "https://yourcompany.sharepoint.com/sites/engineering",
-    "HR Portal": "https://yourcompany.sharepoint.com/sites/hr",
     "IT Support Ticket": "https://yourcompany.service-now.com"
 }
 
 # --- STATE MANAGEMENT ---
 if 'user_role' not in st.session_state:
-    st.session_state['user_role'] = "Spare Parts Engineer" # Default to Parts for you
+    st.session_state['user_role'] = "Spare Parts Engineer" 
 
 def get_curriculum(role):
     tasks = []
-    # Add Common Tasks
+    # Add Common Tasks (If any)
     for t in COMMON_TASKS:
         tasks.append({**t, "Status": False, "Role": "All"})
     
@@ -103,7 +99,7 @@ if selected_role != st.session_state['user_role']:
 page = st.sidebar.radio("Navigate", ["My Dashboard", "Learning Modules", "Admin View"])
 st.sidebar.markdown("---")
 
-# --- NEW SECTION: IMPORTANT LINKS ---
+# --- LINKS SECTION ---
 st.sidebar.subheader("🔗 Quick Links")
 for name, url in IMPORTANT_LINKS.items():
     st.sidebar.markdown(f"[{name}]({url})")
@@ -116,6 +112,8 @@ if page == "My Dashboard":
     df = pd.DataFrame(st.session_state['curriculum'])
     if df.empty: 
         progress = 0
+        total = 0
+        completed = 0
     else:
         total = len(df)
         completed = len(df[df['Status'] == True])
@@ -129,8 +127,11 @@ if page == "My Dashboard":
         if selected_role == "Spare Parts Engineer":
             # Count specific software access tasks completed
             access_tasks = df[df['Category'] == 'Software Access']
-            access_done = len(access_tasks[access_tasks['Status'] == True])
-            st.metric("Software Access", f"{access_done} / {len(access_tasks)}")
+            if not access_tasks.empty:
+                access_done = len(access_tasks[access_tasks['Status'] == True])
+                st.metric("Software Access", f"{access_done} / {len(access_tasks)}")
+            else:
+                 st.metric("Software Access", "0 / 0")
         else:
             st.metric("Field Visits", "0 / 5")
     with col3:
@@ -147,7 +148,6 @@ if page == "My Dashboard":
     pending_tasks = df[df['Status'] == False]
     
     if not pending_tasks.empty:
-        # We style the dataframe to highlight the Category
         st.dataframe(
             pending_tasks[['Category', 'Task', 'Type']], 
             use_container_width=True,
@@ -161,45 +161,46 @@ elif page == "Learning Modules":
     st.title("📚 Tasks & Training")
     
     df = pd.DataFrame(st.session_state['curriculum'])
-    categories = df['Category'].unique()
-    
-    # Custom order for Parts Engineers so "Equipment" comes first
-    if selected_role == "Spare Parts Engineer":
-        # Force specific order if present
-        preferred_order = ["Equipment & Gear", "Orientation", "Software Access", "Training Modules", "Process Knowledge"]
-        # Filter strictly to what exists in data to avoid errors
-        categories = [c for c in preferred_order if c in categories] + [c for c in categories if c not in preferred_order]
+    if not df.empty:
+        categories = df['Category'].unique()
+        
+        # Custom order for Parts Engineers
+        if selected_role == "Spare Parts Engineer":
+            preferred_order = ["Equipment & Gear", "Orientation", "Software Access", "Training Modules", "Process Knowledge"]
+            categories = [c for c in preferred_order if c in categories] + [c for c in categories if c not in preferred_order]
 
-    for cat in categories:
-        with st.expander(f"🔹 {cat}", expanded=True):
-            cat_tasks = df[df['Category'] == cat]
-            
-            for index, row in cat_tasks.iterrows():
-                # Find original index to sync state
-                original_index = -1
-                for i, item in enumerate(st.session_state['curriculum']):
-                    if item['Task'] == row['Task']:
-                        original_index = i
-                        break
+        for cat in categories:
+            with st.expander(f"🔹 {cat}", expanded=True):
+                cat_tasks = df[df['Category'] == cat]
                 
-                col_a, col_b = st.columns([0.05, 0.95])
-                with col_a:
-                    st.checkbox(
-                        "Done", 
-                        value=row['Status'], 
-                        key=f"task_{original_index}",
-                        on_change=toggle_status,
-                        args=(original_index,),
-                        label_visibility="collapsed"
-                    )
-                with col_b:
-                    # Formatting based on type
-                    if row['Type'] == "IT Ticket":
-                        st.write(f"**{row['Task']}** 🎫 *(Requires IT Ticket)*")
-                    elif row['Type'] == "Training":
-                        st.write(f"**{row['Task']}** 🎓 *(Online Course)*")
-                    else:
-                        st.write(f"**{row['Task']}**")
+                for index, row in cat_tasks.iterrows():
+                    # Find original index
+                    original_index = -1
+                    for i, item in enumerate(st.session_state['curriculum']):
+                        if item['Task'] == row['Task']:
+                            original_index = i
+                            break
+                    
+                    col_a, col_b = st.columns([0.05, 0.95])
+                    with col_a:
+                        st.checkbox(
+                            "Done", 
+                            value=row['Status'], 
+                            key=f"task_{original_index}",
+                            on_change=toggle_status,
+                            args=(original_index,),
+                            label_visibility="collapsed"
+                        )
+                    with col_b:
+                        # Formatting based on type
+                        if row['Type'] == "IT Ticket":
+                            st.write(f"**{row['Task']}** 🎫 *(Requires IT Ticket)*")
+                        elif row['Type'] == "Training":
+                            st.write(f"**{row['Task']}** 🎓 *(Online Course)*")
+                        else:
+                            st.write(f"**{row['Task']}**")
+    else:
+        st.info("No tasks assigned yet.")
 
 # --- PAGE 3: ADMIN VIEW ---
 elif page == "Admin View":
@@ -214,3 +215,4 @@ elif page == "Admin View":
         "Onboarding %": [90, 45, 20]
     }
     st.table(data)
+
