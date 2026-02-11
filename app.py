@@ -53,7 +53,7 @@ FAROS_CATALOG = {
     ]
 }
 
-# NEW: NAVIGATOR TRAINING COURSES
+# NAVIGATOR TRAINING COURSES
 NAVIGATOR_COURSES = {
     "Mandatory": [
         "Global Data Privacy & GDPR (30 mins)",
@@ -74,7 +74,7 @@ NAVIGATOR_COURSES = {
     ]
 }
 
-# NEW: TOOLKIT (Tidinfo, SCORE, etc.)
+# TOOLKIT (Tidinfo, SCORE, etc.)
 TOOLKIT = {
     "Common": [
         "Tidinfo – Technical information portal",
@@ -267,6 +267,28 @@ def get_overall_progress():
     overall = (w_checklist * checklist_progress) + (w_navigator * navigator_progress)
     return checklist_progress, navigator_progress, overall
 
+def get_incomplete_navigator_courses_for_focus(max_items: int):
+    """
+    Return a list of (section, course) for incomplete Navigator courses,
+    limited to max_items.
+    Priority: Mandatory first, then role-specific.
+    """
+    role_key = get_role_key(st.session_state['user_role'])
+    status = st.session_state.get('navigator_status', {})
+
+    ordered = [("Mandatory", c) for c in NAVIGATOR_COURSES["Mandatory"]] + \
+              [(role_key, c) for c in NAVIGATOR_COURSES[role_key]]
+
+    incomplete = []
+    for section, course in ordered:
+        key = navigator_course_key(section, course)
+        if not status.get(key, False):
+            incomplete.append((section, course))
+        if len(incomplete) >= max_items:
+            break
+
+    return incomplete
+
 # --- 3. STATE INITIALIZATION ---
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = "SPE (Spare Parts Engineer)"
@@ -323,7 +345,7 @@ if page == "Dashboard":
 
     df = pd.DataFrame(st.session_state['curriculum'])
 
-    # New: combined progress
+    # Combined progress
     checklist_p, navigator_p, overall_p = get_overall_progress()
     overall_percent = int(overall_p * 100)
 
@@ -362,19 +384,54 @@ if page == "Dashboard":
         st.balloons()
         st.success("🎉 You have completed all onboarding tasks (checklist + Navigator)!")
 
+    # --- Today's Focus (Checklist + Navigator) ---
     st.subheader("📅 Today's Focus")
-    if not df.empty:
-        day1_tasks = df[(df['Phase'] == 'Day 1') & (df['Status'] == False)]
 
-        if not day1_tasks.empty:
-            st.info("⚠️ You still have 'Day 1' tasks to complete!")
-            st.dataframe(day1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
-        else:
-            if overall_percent < 100:
-                st.success("Day 1 checklist tasks complete! Moving on to Week 1 goals.")
-                week1_tasks = df[(df['Phase'] == 'Week 1') & (df['Status'] == False)]
-                if not week1_tasks.empty:
-                    st.dataframe(week1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
+    if not df.empty:
+        # Phase priority: Day 1, then Week 1, then anything else
+        phase_order = ["Day 1", "Week 1"]
+
+        remaining_tasks = df[df['Status'] == False].copy()
+        remaining_tasks["PhaseOrder"] = remaining_tasks["Phase"].apply(
+            lambda p: phase_order.index(p) if p in phase_order else len(phase_order)
+        )
+
+        remaining_tasks = remaining_tasks.sort_values(
+            by=["PhaseOrder", "Phase", "Category", "Task"]
+        )
+
+        N = 5
+        focus_tasks = remaining_tasks.head(N)
+
+        num_checklist_focus = len(focus_tasks)
+
+        if num_checklist_focus > 0:
+            st.markdown("**Checklist – next tasks (by phase priority)**")
+            st.dataframe(
+                focus_tasks[["Phase", "Category", "Task", "Mentor"]],
+                hide_index=True,
+                use_container_width=True
+            )
+
+        # Fill remaining slots with Navigator courses if any
+        remaining_slots = max(0, N - num_checklist_focus)
+        nav_focus = []
+        if remaining_slots > 0:
+            nav_focus = get_incomplete_navigator_courses_for_focus(remaining_slots)
+
+        if nav_focus:
+            st.markdown("---")
+            st.markdown("**Navigator – suggested courses to complete next**")
+            nav_df = pd.DataFrame(
+                [
+                    {"Section": section, "Course": course}
+                    for section, course in nav_focus
+                ]
+            )
+            st.dataframe(nav_df, hide_index=True, use_container_width=True)
+
+        if num_checklist_focus == 0 and not nav_focus:
+            st.success("✅ All checklist tasks and Navigator courses for your role are complete!")
     else:
         st.info("No checklist tasks defined yet.")
 
