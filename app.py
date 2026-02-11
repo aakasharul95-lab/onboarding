@@ -1,12 +1,14 @@
 import streamlit as st
 import pandas as pd
+import random
+import io
 
 # --- CONFIGURATION ---
-st.set_page_config(page_title="AMT Onboarding Hub", layout="wide")
+st.set_page_config(page_title="AMT Onboarding Hub", layout="wide", page_icon="🚀")
 
 # --- 1. DATA & CONTENT ---
 
-# EXTRACTED FROM: AMT Faros Request Catalogue (Expanded List)
+# EXTRACTED FROM: AMT Faros Request Catalogue
 FAROS_CATALOG = {
     "Common": [
         "Microsoft 365 (Outlook, Teams, Excel)",
@@ -61,6 +63,14 @@ IMPORTANT_LINKS = {
     "E-Learning Portal": "https://learning.internal.example.com"
 }
 
+# KEY CONTACTS (New Feature)
+KEY_CONTACTS = {
+    "IT Helpdesk": "Ext. 4040 (help@amt.com)",
+    "HR Onboarding": "Ext. 2000 (hr@amt.com)",
+    "Safety Officer": "Ext. 9110 (safety@amt.com)",
+    "Facilities": "Ext. 1234 (fixit@amt.com)"
+}
+
 # ACRONYM DICTIONARY
 ACRONYMS = {
     "GLOPPS": "Global Logistics & Parts Planning System",
@@ -74,12 +84,13 @@ ACRONYMS = {
     "ESR": "Electronic Service Report",
     "HSV": "Hydraulic Schematics Viewer",
     "PLM": "Product Lifecycle Management",
-    "PPE": "Personal Protective Equipment"
+    "PPE": "Personal Protective Equipment",
+    "SOP": "Standard Operating Procedure",
+    "VPN": "Virtual Private Network"
 }
 
-# MAIN DATA FUNCTION: Returns tasks based on role
+# MAIN DATA FUNCTION
 def get_checklist_data(role):
-    # Base list for everyone (Day 1 Basics)
     tasks = [
         # DAY 1 - BASICS
         {"Phase": "Day 1", "Category": "Logistics", "Task": "Collect Safety Shoes & PPE", "Mentor": "Office Admin", "Type": "Pickup"},
@@ -95,7 +106,6 @@ def get_checklist_data(role):
         {"Phase": "Week 1", "Category": "Introduction", "Task": "Team Introduction Presentation", "Mentor": "Manager: Mike R.", "Type": "Meeting"},
     ]
 
-    # SPECIFIC TASKS FOR SE (Service Engineer)
     if role == "SE (Service Engineer)":
         tasks.extend([
             {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: SAP Service Module", "Mentor": "Tech Lead: Alex", "Type": "IT Ticket"},
@@ -104,7 +114,6 @@ def get_checklist_data(role):
             {"Phase": "Week 1", "Category": "Field Prep", "Task": "Ride-along Preparation", "Mentor": "Senior SE: John D.", "Type": "Meeting"},
         ])
 
-    # SPECIFIC TASKS FOR SPE (Spare Parts Engineer)
     elif role == "SPE (Spare Parts Engineer)":
         tasks.extend([
             {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: SAP GUI (ERP)", "Mentor": "Logistics Lead", "Type": "IT Ticket"},
@@ -116,23 +125,55 @@ def get_checklist_data(role):
         
     return tasks
 
+# --- HELPER FUNCTIONS ---
+def generate_report(user_role, data):
+    """Generates a text report for download"""
+    buffer = io.StringIO()
+    buffer.write(f"ONBOARDING REPORT: {user_role}\n")
+    buffer.write("="*40 + "\n\n")
+    
+    completed = [t for t in data if t['Status']]
+    pending = [t for t in data if not t['Status']]
+    
+    buffer.write(f"SUMMARY: {len(completed)} Completed | {len(pending)} Pending\n\n")
+    
+    buffer.write("[ COMPLETED TASKS ]\n")
+    for t in completed:
+        buffer.write(f"[x] {t['Task']} (Mentor: {t['Mentor']})\n")
+        
+    buffer.write("\n[ PENDING TASKS ]\n")
+    for t in pending:
+        buffer.write(f"[ ] {t['Task']} (Mentor: {t['Mentor']})\n")
+        
+    return buffer.getvalue()
+
 # --- STATE MANAGEMENT ---
 if 'user_role' not in st.session_state:
-    st.session_state['user_role'] = "SPE (Spare Parts Engineer)" # Default
+    st.session_state['user_role'] = "SPE (Spare Parts Engineer)"
 
-# Load curriculum into session state
 if 'curriculum' not in st.session_state:
     raw_data = get_checklist_data(st.session_state['user_role'])
-    # Add 'Status' key to track completion
     st.session_state['curriculum'] = [{**t, "Status": False} for t in raw_data]
 
+# State for Flashcards
+if 'flashcard_term' not in st.session_state:
+    st.session_state['flashcard_term'] = random.choice(list(ACRONYMS.keys()))
+if 'flashcard_reveal' not in st.session_state:
+    st.session_state['flashcard_reveal'] = False
+
 def reset_user():
-    """Resets the checklist when the user switches roles"""
     raw_data = get_checklist_data(st.session_state['user_role'])
     st.session_state['curriculum'] = [{**t, "Status": False} for t in raw_data]
 
 def toggle_status(index):
     st.session_state['curriculum'][index]['Status'] = not st.session_state['curriculum'][index]['Status']
+
+def new_flashcard():
+    st.session_state['flashcard_term'] = random.choice(list(ACRONYMS.keys()))
+    st.session_state['flashcard_reveal'] = False
+
+def reveal_flashcard():
+    st.session_state['flashcard_reveal'] = True
 
 # --- SIDEBAR ---
 st.sidebar.title("🚀 AMT Onboarding")
@@ -144,33 +185,22 @@ selected_role = st.sidebar.selectbox(
     index=0
 )
 
-# Reset if role changes
 if selected_role != st.session_state['user_role']:
     st.session_state['user_role'] = selected_role
     reset_user()
     st.rerun()
 
 # Navigation
-page = st.sidebar.radio("Navigate", ["Dashboard", "FAROS Requests", "Checklist", "Mentor Guide"])
+page = st.sidebar.radio("Navigate", ["Dashboard", "FAROS Requests", "Checklist", "Training Dojo", "Mentor Guide"])
 
-# --- SIDEBAR WIDGET: ACRONYM BUSTER ---
+# CONTACT WIDGET (New Feature)
 st.sidebar.markdown("---")
-with st.sidebar.expander("🧠 Acronym Buster"):
-    search_term = st.text_input("Look up a term:", placeholder="e.g. MOM")
-    if search_term:
-        found = False
-        for key, value in ACRONYMS.items():
-            if search_term.upper() in key:
-                st.info(f"**{key}**: {value}")
-                found = True
-        if not found:
-            st.error("Unknown term.")
-    else:
-        st.caption("Type a term like 'LOTO' or 'SAP' above.")
-
-st.sidebar.markdown("---")
+with st.sidebar.expander("🆘 Who do I call?"):
+    for dept, contact in KEY_CONTACTS.items():
+        st.markdown(f"**{dept}:**\n`{contact}`")
 
 # Links Section
+st.sidebar.markdown("---")
 st.sidebar.subheader("🔗 Quick Links")
 for name, url in IMPORTANT_LINKS.items():
     st.sidebar.markdown(f"[{name}]({url})")
@@ -179,7 +209,6 @@ for name, url in IMPORTANT_LINKS.items():
 if page == "Dashboard":
     st.title(f"Welcome, {selected_role.split('(')[0]}! 👋")
     
-    # Progress Calculation
     df = pd.DataFrame(st.session_state['curriculum'])
     if not df.empty:
         total = len(df)
@@ -188,36 +217,41 @@ if page == "Dashboard":
     else:
         progress = 0
 
-    # Metrics
+    # Top Metrics
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Total Progress", f"{progress}%")
     with col2:
-        # Count FAROS (IT Ticket) tasks specifically
         faros_tasks = df[df['Category'] == 'FAROS Access']
         if not faros_tasks.empty:
             faros_done = len(faros_tasks[faros_tasks['Status'] == True])
             st.metric("Access Requests", f"{faros_done} / {len(faros_tasks)}")
-        else:
-            st.metric("Access Requests", "N/A")
     with col3:
         remaining = len(df[df['Status'] == False])
         st.metric("Pending Tasks", remaining)
 
     st.progress(progress / 100)
     
-    # Celebration if complete!
+    # Export Report Button (New Feature)
+    st.download_button(
+        label="📄 Download Progress Report",
+        data=generate_report(selected_role, st.session_state['curriculum']),
+        file_name="onboarding_report.txt",
+        mime="text/plain"
+    )
+
+    st.markdown("---")
+    
+    # Celebration
     if progress == 100:
         st.balloons()
-        st.success("🎉 You have completed all onboarding tasks! Contact your manager for next steps.")
+        st.success("🎉 You have completed all onboarding tasks!")
     
     st.subheader("📅 Today's Focus")
-    # Filter for Day 1 tasks if incomplete, otherwise show Week 1
     day1_tasks = df[(df['Phase'] == 'Day 1') & (df['Status'] == False)]
     
     if not day1_tasks.empty:
         st.info("⚠️ You still have 'Day 1' tasks to complete!")
-        # Show specific columns
         st.dataframe(day1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
     else:
         if progress < 100:
@@ -229,18 +263,13 @@ if page == "Dashboard":
 # --- PAGE 2: FAROS REQUESTS ---
 elif page == "FAROS Requests":
     st.title("🔐 FAROS Access Catalogue")
-    st.markdown("Use the **FAROS Portal** link in the sidebar to request these specific tools.")
-    
-    # Determine which list to show based on role
     role_key = "SE" if "Service" in st.session_state['user_role'] else "SPE"
     
-    # 1. CORE ACCESS (Always visible)
     st.subheader("🏢 Standard Access (Required for All)")
     with st.expander("View Core Systems List", expanded=True):
         c1, c2 = st.columns(2)
         items = FAROS_CATALOG["Common"]
         half = (len(items) + 1) // 2
-        
         with c1:
             for item in items[:half]:
                 st.markdown(f"✅ {item}")
@@ -248,15 +277,12 @@ elif page == "FAROS Requests":
             for item in items[half:]:
                 st.markdown(f"✅ {item}")
 
-    # 2. ROLE SPECIFIC ACCESS
     st.subheader(f"🛠 {role_key} Specialized Tools")
     st.info(f"These tools are specific to your role as **{st.session_state['user_role']}**.")
-    
     with st.expander(f"View {role_key} Toolset", expanded=True):
         c1, c2 = st.columns(2)
         items = FAROS_CATALOG[role_key]
         half = (len(items) + 1) // 2
-        
         with c1:
             for item in items[:half]:
                 st.markdown(f"🔹 **{item}**")
@@ -264,29 +290,20 @@ elif page == "FAROS Requests":
             for item in items[half:]:
                 st.markdown(f"🔹 **{item}**")
 
-    st.markdown("---")
-    st.caption("ℹ️ **Tip:** If you cannot find a specific software in FAROS, please open a 'General Inquiry' ticket in ServiceNow.")
-
 # --- PAGE 3: CHECKLIST ---
 elif page == "Checklist":
     st.title("✅ Onboarding Checklist")
-    
     df = pd.DataFrame(st.session_state['curriculum'])
-    
-    # Group by Phase (Day 1 vs Week 1)
     phases = ["Day 1", "Week 1"]
     
     for phase in phases:
         with st.expander(f"🗓 {phase} Tasks", expanded=True):
             phase_tasks = df[df['Phase'] == phase]
-            
-            # Create headers for the list to simulate a table with controls
             h1, h2, h3 = st.columns([0.05, 0.6, 0.35])
             h2.caption("TASK")
-            h3.caption("MENTOR / POC") # Point of Contact
+            h3.caption("MENTOR / POC")
             
             for index, row in phase_tasks.iterrows():
-                # Find original index to sync state because filtering changes indices
                 original_index = -1
                 for i, item in enumerate(st.session_state['curriculum']):
                     if item['Task'] == row['Task']:
@@ -294,43 +311,59 @@ elif page == "Checklist":
                         break
                 
                 c1, c2, c3 = st.columns([0.05, 0.6, 0.35])
-                
-                # Column 1: Checkbox
                 with c1:
-                    st.checkbox(
-                        "Done", 
-                        value=row['Status'], 
-                        key=f"chk_{original_index}",
-                        on_change=toggle_status,
-                        args=(original_index,),
-                        label_visibility="collapsed"
-                    )
-                
-                # Column 2: Task Name
+                    st.checkbox("Done", value=row['Status'], key=f"chk_{original_index}", on_change=toggle_status, args=(original_index,), label_visibility="collapsed")
                 with c2:
                     if row['Status']:
-                        st.markdown(f"~~{row['Task']}~~") # Strikethrough if done
+                        st.markdown(f"~~{row['Task']}~~")
                     else:
                         st.write(f"**{row['Task']}**")
-
-                # Column 3: Mentor Name (The new feature)
                 with c3:
                     st.info(f"👤 {row['Mentor']}", icon="ℹ️")
 
-# --- PAGE 4: MENTOR GUIDE ---
+# --- PAGE 4: TRAINING DOJO (New Feature) ---
+elif page == "Training Dojo":
+    st.title("🥋 The Training Dojo")
+    st.markdown("Master the company jargon before your first meeting.")
+    
+    st.subheader("⚡ Acronym Flashcards")
+    
+    # Card Container
+    with st.container(border=True):
+        st.markdown(f"<h1 style='text-align: center; color: #FF4B4B;'>{st.session_state['flashcard_term']}</h1>", unsafe_allow_html=True)
+        
+        if st.session_state['flashcard_reveal']:
+            definition = ACRONYMS[st.session_state['flashcard_term']]
+            st.markdown(f"<h3 style='text-align: center; color: gray;'>{definition}</h3>", unsafe_allow_html=True)
+        else:
+            st.markdown("<h3 style='text-align: center; color: gray;'>???</h3>", unsafe_allow_html=True)
+            
+    # Controls
+    c1, c2, c3 = st.columns([1, 1, 1])
+    with c2:
+        if st.session_state['flashcard_reveal']:
+            st.button("Next Card ➡️", on_click=new_flashcard, use_container_width=True)
+        else:
+            st.button("👀 Reveal Definition", on_click=reveal_flashcard, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("### 📚 Full Dictionary")
+    with st.expander("Browse all terms"):
+        st.json(ACRONYMS)
+
+# --- PAGE 5: MENTOR GUIDE ---
 elif page == "Mentor Guide":
     st.title("📘 Mentor's Handbook")
     st.warning("🔒 This section is intended for Mentors & Managers to review.")
 
-    st.subheader("💡 Best Practices for Onboarding")
+    st.subheader("💡 Best Practices")
     st.markdown("""
     * **Day 1 is about comfort:** Ensure the new hire has their hardware and coffee access before diving into technical topics.
     * **Shadowing:** For the first 3 field visits, the new hire should only observe. Do not assign them active tasks yet.
     * **SOP Review:** When teaching *Reman Process*, please use the updated PDF (v2.4) located in SharePoint.
     """)
-    
-    st.markdown("---")
     st.caption("Need to report an issue? Contact the Onboarding Lead at hr-onboarding@example.com")
+
 
 
 
