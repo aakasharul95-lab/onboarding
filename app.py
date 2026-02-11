@@ -1,15 +1,24 @@
 import streamlit as st
 import pandas as pd
-import graphviz # Standard library for flowcharts
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="AMT Onboarding Hub", layout="wide", page_icon="🚀")
 
+# --- 0. LIBRARY CHECK (CRASH GUARD) ---
+# This prevents the app from crashing if graphviz isn't installed
+try:
+    import graphviz
+    has_graphviz = True
+except ModuleNotFoundError:
+    has_graphviz = False
+
 # --- 1. DATA & CONTENT ---
 
-# TECH STACK VISUALIZATION DATA (New Feature)
+# TECH STACK VISUALIZATION DATA
 def get_tech_stack_graph(role):
-    # This creates a visual diagram of how the tools talk to each other
+    if not has_graphviz:
+        return None
+        
     graph = graphviz.Digraph()
     graph.attr(rankdir='LR') # Left to Right layout
     graph.attr('node', shape='box', style='filled', fontname='Helvetica')
@@ -44,14 +53,6 @@ def get_tech_stack_graph(role):
         graph.edge('CAD', 'PLM', label='Drawings Upload')
         
     return graph
-
-# TEAM DIRECTORY (New Feature)
-TEAM_MEMBERS = [
-    {"Name": "Mike Ross", "Role": "Engineering Manager", "Loc": "London (GMT)", "Topic": "Career growth & strategy", "Email": "mike.r@amt.com"},
-    {"Name": "Sarah Jenkings", "Role": "Senior SE (Mentor)", "Loc": "New York (EST)", "Topic": "Field safety & tips", "Email": "sarah.j@amt.com"},
-    {"Name": "Alex Chen", "Role": "Tech Lead", "Loc": "Singapore (SGT)", "Topic": "SAP troubleshooting", "Email": "alex.c@amt.com"},
-    {"Name": "Emily Davis", "Role": "Logistics Coord", "Loc": "Berlin (CET)", "Topic": "Shipping parts urgent", "Email": "emily.d@amt.com"},
-]
 
 # EXTRACTED FROM: AMT Faros Request Catalogue
 FAROS_CATALOG = {
@@ -95,7 +96,7 @@ IMPORTANT_LINKS = {
     "E-Learning": "https://learning.internal.example.com"
 }
 
-# ACRONYMS (Kept only for simple reference, game removed)
+# ACRONYMS
 ACRONYMS = {
     "GLOPPS": "Global Logistics & Parts Planning System",
     "KOLA": "Key On-Line Access (Parts DB)",
@@ -162,8 +163,8 @@ if selected_role != st.session_state['user_role']:
     reset_user()
     st.rerun()
 
-# Updated Navigation
-page = st.sidebar.radio("Navigate", ["Dashboard", "System Map", "Meet the Squad", "FAROS Requests", "Checklist", "Mentor Guide"])
+# Updated Navigation - "Meet the Squad" removed
+page = st.sidebar.radio("Navigate", ["Dashboard", "FAROS Requests", "Checklist", "Mentor Guide", "Good to Know"])
 
 # CONTACT WIDGET
 st.sidebar.markdown("---")
@@ -171,7 +172,7 @@ with st.sidebar.expander("🆘 Who do I call?"):
     for dept, contact in KEY_CONTACTS.items():
         st.markdown(f"**{dept}:**\n`{contact}`")
 
-# ACRONYM WIDGET (Simple lookup only)
+# ACRONYM WIDGET
 st.sidebar.markdown("---")
 with st.sidebar.expander("🧠 Acronym Buster"):
     search_term = st.text_input("Look up a term:", placeholder="e.g. MOM")
@@ -233,37 +234,7 @@ if page == "Dashboard":
             if not week1_tasks.empty:
                 st.dataframe(week1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
 
-# --- PAGE 2: SYSTEM MAP (New Feature) ---
-elif page == "System Map":
-    st.title("🧩 System Architecture")
-    st.markdown("Understanding how our tools connect helps you understand the workflow.")
-    
-    role = st.session_state['user_role']
-    st.subheader(f"Workflow for {role}")
-    
-    # Render the graphviz chart
-    graph = get_tech_stack_graph(role)
-    st.graphviz_chart(graph)
-    
-    st.info("💡 **Tip:** Click the 'View Fullscreen' arrow on the chart to see details clearly.")
-
-# --- PAGE 3: MEET THE SQUAD (New Feature) ---
-elif page == "Meet the Squad":
-    st.title("👥 Meet the Squad")
-    st.markdown("Here are the key people you'll be working with.")
-    
-    # Grid Layout for cards
-    cols = st.columns(2)
-    
-    for i, person in enumerate(TEAM_MEMBERS):
-        with cols[i % 2]:
-            with st.container(border=True):
-                st.subheader(person["Name"])
-                st.caption(f"📍 {person['Loc']} | 💼 {person['Role']}")
-                st.markdown(f"**☕ Chat with me about:** {person['Topic']}")
-                st.markdown(f"📧 [{person['Email']}](mailto:{person['Email']})")
-
-# --- PAGE 4: FAROS REQUESTS ---
+# --- PAGE 2: FAROS REQUESTS ---
 elif page == "FAROS Requests":
     st.title("🔐 FAROS Access Catalogue")
     role_key = "SE" if "Service" in st.session_state['user_role'] else "SPE"
@@ -293,7 +264,7 @@ elif page == "FAROS Requests":
             for item in items[half:]:
                 st.markdown(f"🔹 **{item}**")
 
-# --- PAGE 5: CHECKLIST ---
+# --- PAGE 3: CHECKLIST ---
 elif page == "Checklist":
     st.title("✅ Onboarding Checklist")
     df = pd.DataFrame(st.session_state['curriculum'])
@@ -324,7 +295,7 @@ elif page == "Checklist":
                 with c3:
                     st.info(f"👤 {row['Mentor']}", icon="ℹ️")
 
-# --- PAGE 6: MENTOR GUIDE ---
+# --- PAGE 4: MENTOR GUIDE ---
 elif page == "Mentor Guide":
     st.title("📘 Mentor's Handbook")
     st.warning("🔒 This section is intended for Mentors & Managers to review.")
@@ -336,6 +307,26 @@ elif page == "Mentor Guide":
     * **SOP Review:** When teaching *Reman Process*, please use the updated PDF (v2.4) located in SharePoint.
     """)
     st.caption("Need to report an issue? Contact the Onboarding Lead at hr-onboarding@example.com")
+
+# --- PAGE 5: GOOD TO KNOW (System Map moved here) ---
+elif page == "Good to Know":
+    st.title("🧩 Good to Know")
+    st.markdown("Context and Reference material for your role.")
+    
+    st.subheader("System Architecture")
+    st.markdown("Understanding how our tools connect helps you understand the workflow.")
+    
+    if has_graphviz:
+        role = st.session_state['user_role']
+        st.write(f"**Workflow for: {role}**")
+        
+        # Render the graphviz chart
+        graph = get_tech_stack_graph(role)
+        st.graphviz_chart(graph)
+        st.info("💡 **Tip:** Click the 'View Fullscreen' arrow on the chart to see details clearly.")
+    else:
+        st.warning("⚠️ Graphviz is not installed. The system map cannot be displayed.")
+        st.code("pip install graphviz", language="bash")
 
 
 
