@@ -146,6 +146,8 @@ def get_checklist_data(role: str):
 def reset_user():
     raw_data = get_checklist_data(st.session_state['user_role'])
     st.session_state['curriculum'] = [{**t, "Status": False} for t in raw_data]
+    # Reset navigator status for new role as well
+    init_navigator_status()
 
 def toggle_status(index):
     st.session_state['curriculum'][index]['Status'] = not st.session_state['curriculum'][index]['Status']
@@ -187,6 +189,56 @@ def get_tech_stack_graph(role_key: str):
 
     return graph
 
+# --- NAVIGATOR STATUS HELPERS ---
+
+def navigator_course_key(section: str, course: str) -> str:
+    # Unique key for each course
+    return f"{section}::{course}"
+
+def init_navigator_status():
+    """
+    Ensure st.session_state['navigator_status'] exists and has
+    entries for all courses (default False).
+    """
+    role_key = get_role_key(st.session_state['user_role'])
+    if 'navigator_status' not in st.session_state:
+        st.session_state['navigator_status'] = {}
+
+    status = st.session_state['navigator_status']
+
+    # Mandatory
+    for c in NAVIGATOR_COURSES["Mandatory"]:
+        key = navigator_course_key("Mandatory", c)
+        status.setdefault(key, False)
+
+    # Role-specific
+    for c in NAVIGATOR_COURSES[role_key]:
+        key = navigator_course_key(role_key, c)
+        status.setdefault(key, False)
+
+    st.session_state['navigator_status'] = status
+
+def get_navigator_progress():
+    """
+    Compute number completed / total for current role + mandatory.
+    """
+    role_key = get_role_key(st.session_state['user_role'])
+    status = st.session_state.get('navigator_status', {})
+
+    all_courses = [
+        ("Mandatory", c) for c in NAVIGATOR_COURSES["Mandatory"]
+    ] + [
+        (role_key, c) for c in NAVIGATOR_COURSES[role_key]
+    ]
+
+    total = len(all_courses)
+    completed = 0
+    for section, course in all_courses:
+        key = navigator_course_key(section, course)
+        if status.get(key, False):
+            completed += 1
+    return completed, total
+
 # --- 3. STATE INITIALIZATION ---
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = "SPE (Spare Parts Engineer)"
@@ -194,6 +246,9 @@ if 'user_role' not in st.session_state:
 if 'curriculum' not in st.session_state:
     raw_data = get_checklist_data(st.session_state['user_role'])
     st.session_state['curriculum'] = [{**t, "Status": False} for t in raw_data]
+
+# Initialize navigator status once user_role exists
+init_navigator_status()
 
 # --- 4. SIDEBAR ---
 st.sidebar.title("🚀 AMT Onboarding")
@@ -282,7 +337,7 @@ elif page == "Requests & Learning":
     st.title("📚 Requests & Learning")
     st.markdown("Here you can find your IT Access Requests, Mandatory Training, and Toolkit.")
 
-    # Now 3 tabs: FAROS, Navigator, Toolkit
+    # 3 tabs: FAROS, Navigator, Toolkit
     tab1, tab2, tab3 = st.tabs(["🔐 FAROS Access Requests", "🎓 Navigator Courses", "🧰 Toolkit"])
 
     # --- TAB 1: FAROS ACCESS ---
@@ -313,19 +368,34 @@ elif page == "Requests & Learning":
                 for item in items[half:]:
                     st.markdown(f"🔹 **{item}**")
 
-    # --- TAB 2: NAVIGATOR COURSES ---
+    # --- TAB 2: NAVIGATOR COURSES (with checkboxes) ---
     with tab2:
         st.info("Log in to **Navigator** (link in sidebar) to complete these modules.")
 
+        completed, total = get_navigator_progress()
+        st.metric("Navigator Progress", f"{completed} / {total} courses")
+
         st.subheader("🚨 Mandatory Compliance (Due Week 1)")
-        for item in NAVIGATOR_COURSES["Mandatory"]:
-            st.warning(f"⚠️ {item}")
+        for course in NAVIGATOR_COURSES["Mandatory"]:
+            key = navigator_course_key("Mandatory", course)
+            checked = st.checkbox(
+                label=course,
+                value=st.session_state['navigator_status'].get(key, False),
+                key=f"nav_{key}"
+            )
+            st.session_state['navigator_status'][key] = checked
 
         st.markdown("---")
 
         st.subheader(f"🧠 {role_key} Role-Specific Training")
-        for item in NAVIGATOR_COURSES[role_key]:
-            st.success(f"🎓 {item}")
+        for course in NAVIGATOR_COURSES[role_key]:
+            key = navigator_course_key(role_key, course)
+            checked = st.checkbox(
+                label=course,
+                value=st.session_state['navigator_status'].get(key, False),
+                key=f"nav_{key}"
+            )
+            st.session_state['navigator_status'][key] = checked
 
     # --- TAB 3: TOOLKIT ---
     with tab3:
@@ -407,7 +477,6 @@ elif page == "Good to Know":
     else:
         st.warning("⚠️ Graphviz is not installed. The system map cannot be displayed.")
         st.code("pip install graphviz", language="bash")
-
 
 
 
