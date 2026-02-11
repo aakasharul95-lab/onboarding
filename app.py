@@ -6,30 +6,45 @@ st.set_page_config(page_title="AMT Onboarding Hub", layout="wide")
 
 # --- 1. DATA & CONTENT ---
 
-# EXTRACTED FROM: AMT Faros Request Catalogue
-FAROS_CATALOG = {
-    "Common": [
-        "Microsoft 365 (Outlook, Teams, Excel)",
-        "VPN Access (Cisco AnyConnect)",
-        "Workday Access",
-        "Concur (Travel & Expenses)"
-    ],
-    "SPE": [
-        "SAP GUI (ERP System)",
-        "GLOPPS (Global Logistics)",
-        "KOLA (Parts Documentation)",
-        "RUMBA",
-        "Autodesk Vault (CAD Data Management)",
-        "Creo MCAD (View Only)"
-    ],
-    "SE": [
-        "SAP GUI (Service Module)",
-        "MOM (Mobile Order Management)",
-        "LOTO Safety Portal",
-        "Electronic Service Report (ESR) Tool",
-        "Hydraulic Schematics Viewer"
-    ]
-}
+# --- PAGE 2: FAROS REQUESTS ---
+elif page == "FAROS Requests":
+    st.title("🔐 FAROS Access Catalogue")
+    st.markdown("Use the **FAROS Portal** link in the sidebar to request these specific tools.")
+    
+    # Determine which list to show based on role
+    role_key = "SE" if "Service" in st.session_state['user_role'] else "SPE"
+    
+    # 1. CORE ACCESS (Always visible)
+    st.subheader("🏢 Standard Access (Required for All)")
+    with st.expander("View Core Systems List", expanded=True):
+        # specific layout for long lists
+        c1, c2 = st.columns(2)
+        for i, item in enumerate(FAROS_CATALOG["Common"]):
+            if i % 2 == 0:
+                c1.markdown(f"✅ {item}")
+            else:
+                c2.markdown(f"✅ {item}")
+
+    # 2. ROLE SPECIFIC ACCESS
+    st.subheader(f"🛠 {role_key} Specialized Tools")
+    st.info(f"These tools are specific to your role as **{st.session_state['user_role']}**.")
+    
+    with st.expander(f"View {role_key} Toolset", expanded=True):
+        c1, c2 = st.columns(2)
+        items = FAROS_CATALOG[role_key]
+        
+        # Split list in half for two columns
+        half = len(items) // 2
+        
+        with c1:
+            for item in items[:half]:
+                st.markdown(f"🔹 **{item}**")
+        with c2:
+            for item in items[half:]:
+                st.markdown(f"🔹 **{item}**")
+
+    st.markdown("---")
+    st.caption("ℹ️ **Tip:** If you cannot find a specific software in FAROS, please open a 'General Inquiry' ticket in ServiceNow.")
 
 # EXTRACTED FROM: AMT Program Links
 IMPORTANT_LINKS = {
@@ -272,4 +287,5 @@ elif page == "Mentor Guide":
         
     st.markdown("---")
     st.caption("Need to report an issue? Contact the Onboarding Lead at hr-onboarding@example.com")
+
 
