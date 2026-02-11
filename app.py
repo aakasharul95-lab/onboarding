@@ -61,6 +61,21 @@ IMPORTANT_LINKS = {
     "E-Learning Portal": "https://learning.internal.example.com"
 }
 
+# ACRONYM DICTIONARY (New Feature)
+ACRONYMS = {
+    "AI": "Aakash Intelligence",
+    "LOTO": "Lock Out Tag Out (Safety Procedure)",
+    "MOM": "Mobile Order Management",
+    "SAP": "Systems, Applications, and Products (ERP Software)",
+    "SPE": "Spare Parts Engineer",
+    "SE": "Service Engineer",
+    "FAROS": "Federated Access Request & Onboarding System",
+    "ESR": "Electronic Service Report",
+    "HSV": "Hydraulic Schematics Viewer",
+    "PLM": "Product Lifecycle Management",
+    "PPE": "Personal Protective Equipment"
+}
+
 # MAIN DATA FUNCTION: Returns tasks based on role
 def get_checklist_data(role):
     # Base list for everyone (Day 1 Basics)
@@ -136,6 +151,22 @@ if selected_role != st.session_state['user_role']:
 
 # Navigation
 page = st.sidebar.radio("Navigate", ["Dashboard", "FAROS Requests", "Checklist", "Mentor Guide"])
+
+# --- NEW FEATURE: ACRONYM BUSTER ---
+st.sidebar.markdown("---")
+with st.sidebar.expander("🧠 Acronym Buster"):
+    search_term = st.text_input("Look up a term:", placeholder="e.g. MOM")
+    if search_term:
+        found = False
+        for key, value in ACRONYMS.items():
+            if search_term.upper() in key:
+                st.info(f"**{key}**: {value}")
+                found = True
+        if not found:
+            st.error("Unknown term.")
+    else:
+        st.caption("Type a term like 'LOTO' or 'SAP' above.")
+
 st.sidebar.markdown("---")
 
 # Links Section
@@ -174,6 +205,11 @@ if page == "Dashboard":
 
     st.progress(progress / 100)
     
+    # Celebration if complete!
+    if progress == 100:
+        st.balloons()
+        st.success("🎉 You have completed all onboarding tasks! Contact your manager for next steps.")
+    
     st.subheader("📅 Today's Focus")
     # Filter for Day 1 tasks if incomplete, otherwise show Week 1
     day1_tasks = df[(df['Phase'] == 'Day 1') & (df['Status'] == False)]
@@ -183,10 +219,11 @@ if page == "Dashboard":
         # Show specific columns
         st.dataframe(day1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
     else:
-        st.success("Day 1 tasks complete! Moving on to Week 1 goals.")
-        week1_tasks = df[(df['Phase'] == 'Week 1') & (df['Status'] == False)]
-        if not week1_tasks.empty:
-            st.dataframe(week1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
+        if progress < 100:
+            st.success("Day 1 tasks complete! Moving on to Week 1 goals.")
+            week1_tasks = df[(df['Phase'] == 'Week 1') & (df['Status'] == False)]
+            if not week1_tasks.empty:
+                st.dataframe(week1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
 
 # --- PAGE 2: FAROS REQUESTS ---
 elif page == "FAROS Requests":
