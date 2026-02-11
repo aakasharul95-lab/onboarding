@@ -97,6 +97,7 @@ IMPORTANT_LINKS = {
     "Concur (Expenses)": "https://www.concursolutions.com"
 }
 
+# UPDATED ACRONYMS WITH TOBIAS & AAKASH
 ACRONYMS = {
     "AI": "Aakash Intelligence",
     "KOLA": "Key On-Line Access (Parts DB)",
@@ -321,13 +322,20 @@ with st.sidebar.expander("🆘 Who do I call?"):
         st.markdown(f"**{dept}:**\n`{contact}`")
 
 st.sidebar.markdown("---")
+# CASE-INSENSITIVE ACRONYM BUSTER
 with st.sidebar.expander("🧠 Acronym Buster"):
-    search_term = st.text_input("Look up a term:", placeholder="e.g. MOM")
+    search_term = st.text_input("Look up a term:", placeholder="e.g. MOM, Tobias, Aakash")
     if search_term:
-        key = search_term.upper().strip()
-        if key in ACRONYMS:
-            st.info(f"**{key}**: {ACRONYMS[key]}")
-        else:
+        query = search_term.strip().lower()
+        found = False
+
+        for key, value in ACRONYMS.items():
+            if key.lower() == query:
+                st.info(f"**{key}**: {value}")
+                found = True
+                break
+
+        if not found:
             st.error("Unknown term.")
 
 st.sidebar.markdown("---")
