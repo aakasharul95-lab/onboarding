@@ -120,7 +120,7 @@ IMPORTANT_LINKS = {
 ACRONYMS = {
     "AI": "Aakash Intelligence",
     "TOBIAS": "Totally Outclassed By Intelligent Aakash Significantly",
-    "LOTO": "Lock Out Tag Out",
+    "AAKASH": "An Absolute Knight Amongst Silly Humans",
     "MOM": "Mobile Order Management",
     "SAP": "Systems, Applications, and Products",
     "SPE": "Spare Parts Engineer",
@@ -369,6 +369,7 @@ elif page == "Good to Know":
     else:
         st.warning("⚠️ Graphviz is not installed. The system map cannot be displayed.")
         st.code("pip install graphviz", language="bash")
+
 
 
 
