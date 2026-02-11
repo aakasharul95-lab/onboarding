@@ -239,6 +239,34 @@ def get_navigator_progress():
             completed += 1
     return completed, total
 
+def get_overall_progress():
+    """
+    Combine checklist and Navigator progress into one overall %
+    You can tune the weights: e.g., 0.6 checklist / 0.4 navigator.
+    """
+    # Checklist progress
+    df = pd.DataFrame(st.session_state['curriculum'])
+    if not df.empty:
+        checklist_total = len(df)
+        checklist_done = df['Status'].sum()
+        checklist_progress = checklist_done / checklist_total
+    else:
+        checklist_progress = 0.0
+
+    # Navigator progress
+    nav_done, nav_total = get_navigator_progress()
+    if nav_total > 0:
+        navigator_progress = nav_done / nav_total
+    else:
+        navigator_progress = 0.0
+
+    # Weights (adjust as you like)
+    w_checklist = 0.5
+    w_navigator = 0.5
+
+    overall = (w_checklist * checklist_progress) + (w_navigator * navigator_progress)
+    return checklist_progress, navigator_progress, overall
+
 # --- 3. STATE INITIALIZATION ---
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = "SPE (Spare Parts Engineer)"
@@ -294,43 +322,61 @@ if page == "Dashboard":
     st.title(f"Welcome, {selected_role.split('(')[0]}! 👋")
 
     df = pd.DataFrame(st.session_state['curriculum'])
-    if not df.empty:
-        total = len(df)
-        completed = df['Status'].sum()
-        progress = int((completed / total) * 100)
-    else:
-        progress = 0
+
+    # New: combined progress
+    checklist_p, navigator_p, overall_p = get_overall_progress()
+    overall_percent = int(overall_p * 100)
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total Progress", f"{progress}%")
+        st.metric("Overall Onboarding Progress", f"{overall_percent}%")
+
     with col2:
-        faros_tasks = df[df['Category'] == 'Access']
-        if not faros_tasks.empty:
-            faros_done = faros_tasks['Status'].sum()
-            st.metric("Access Requests", f"{faros_done} / {len(faros_tasks)}")
+        # Checklist-specific info
+        if not df.empty:
+            faros_tasks = df[df['Category'] == 'Access']
+            if not faros_tasks.empty:
+                faros_done = faros_tasks['Status'].sum()
+                st.metric("Access Requests (Checklist)", f"{faros_done} / {len(faros_tasks)}")
+            else:
+                st.metric("Access Requests (Checklist)", "0 / 0")
+        else:
+            st.metric("Access Requests (Checklist)", "0 / 0")
+
     with col3:
-        remaining = len(df) - df['Status'].sum()
-        st.metric("Pending Tasks", remaining)
+        # Navigator-specific metric
+        nav_done, nav_total = get_navigator_progress()
+        st.metric("Navigator Courses", f"{nav_done} / {nav_total}")
 
-    st.progress(progress / 100)
+    # Progress bar reflects overall progress
+    st.progress(overall_p)
 
-    if progress == 100:
+    # Sub progress
+    st.caption(
+        f"Checklist completion: {int(checklist_p * 100)}%  •  "
+        f"Navigator completion: {int(navigator_p * 100)}%"
+    )
+
+    # Celebration if overall is 100%
+    if overall_percent == 100:
         st.balloons()
-        st.success("🎉 You have completed all onboarding tasks!")
+        st.success("🎉 You have completed all onboarding tasks (checklist + Navigator)!")
 
     st.subheader("📅 Today's Focus")
-    day1_tasks = df[(df['Phase'] == 'Day 1') & (df['Status'] == False)]
+    if not df.empty:
+        day1_tasks = df[(df['Phase'] == 'Day 1') & (df['Status'] == False)]
 
-    if not day1_tasks.empty:
-        st.info("⚠️ You still have 'Day 1' tasks to complete!")
-        st.dataframe(day1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
+        if not day1_tasks.empty:
+            st.info("⚠️ You still have 'Day 1' tasks to complete!")
+            st.dataframe(day1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
+        else:
+            if overall_percent < 100:
+                st.success("Day 1 checklist tasks complete! Moving on to Week 1 goals.")
+                week1_tasks = df[(df['Phase'] == 'Week 1') & (df['Status'] == False)]
+                if not week1_tasks.empty:
+                    st.dataframe(week1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
     else:
-        if progress < 100:
-            st.success("Day 1 tasks complete! Moving on to Week 1 goals.")
-            week1_tasks = df[(df['Phase'] == 'Week 1') & (df['Status'] == False)]
-            if not week1_tasks.empty:
-                st.dataframe(week1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
+        st.info("No checklist tasks defined yet.")
 
 # PAGE: REQUESTS & LEARNING
 elif page == "Requests & Learning":
@@ -372,8 +418,8 @@ elif page == "Requests & Learning":
     with tab2:
         st.info("Log in to **Navigator** (link in sidebar) to complete these modules.")
 
-        completed, total = get_navigator_progress()
-        st.metric("Navigator Progress", f"{completed} / {total} courses")
+        completed_nav, total_nav = get_navigator_progress()
+        st.metric("Navigator Progress", f"{completed_nav} / {total_nav} courses")
 
         st.subheader("🚨 Mandatory Compliance (Due Week 1)")
         for course in NAVIGATOR_COURSES["Mandatory"]:
@@ -477,8 +523,6 @@ elif page == "Good to Know":
     else:
         st.warning("⚠️ Graphviz is not installed. The system map cannot be displayed.")
         st.code("pip install graphviz", language="bash")
-
-
 
 
 
