@@ -4,10 +4,9 @@ import pandas as pd
 # --- CONFIGURATION ---
 st.set_page_config(page_title="AMT Onboarding Hub", layout="wide")
 
-# --- 1. DATA FROM YOUR FILES ---
+# --- 1. DATA & CONTENT ---
 
 # EXTRACTED FROM: AMT Faros Request Catalogue
-# I have categorized these based on the roles (SE vs SPE)
 FAROS_CATALOG = {
     "Common": [
         "Microsoft 365 (Outlook, Teams, Excel)",
@@ -34,49 +33,48 @@ FAROS_CATALOG = {
 
 # EXTRACTED FROM: AMT Program Links
 IMPORTANT_LINKS = {
-    "FAROS (Access Portal)": "https://faros.internal.example.com",  # Placeholder based on context
+    "FAROS (Access Portal)": "https://faros.internal.example.com", 
     "Workday (HR)": "https://www.myworkday.com",
     "Concur (Expenses)": "https://www.concursolutions.com",
     "C-Time (Timesheets)": "https://ctime.internal.example.com",
     "E-Learning Portal": "https://learning.internal.example.com"
 }
 
-# EXTRACTED FROM: AMT First Week Checklist & Induction Checklist
-# Merged into a logical timeline
+# MAIN DATA FUNCTION: Returns tasks based on role
 def get_checklist_data(role):
     # Base list for everyone (Day 1 Basics)
     tasks = [
         # DAY 1 - BASICS
-        {"Phase": "Day 1", "Category": "Logistics", "Task": "Collect Safety Shoes & PPE", "Type": "Pickup"},
-        {"Phase": "Day 1", "Category": "Logistics", "Task": "Collect Laptop, Mobile & Headset", "Type": "Pickup"},
-        {"Phase": "Day 1", "Category": "IT Setup", "Task": "Initial Windows Login & Password Change", "Type": "Action"},
-        {"Phase": "Day 1", "Category": "IT Setup", "Task": "Connect to Office Wi-Fi / VPN", "Type": "Action"},
-        {"Phase": "Day 1", "Category": "Orientation", "Task": "Office Tour (Fire Exits, Pantry, First Aid)", "Type": "Meeting"},
+        {"Phase": "Day 1", "Category": "Logistics", "Task": "Collect Safety Shoes & PPE", "Mentor": "Office Admin", "Type": "Pickup"},
+        {"Phase": "Day 1", "Category": "Logistics", "Task": "Collect Laptop, Mobile & Headset", "Mentor": "IT Support", "Type": "Pickup"},
+        {"Phase": "Day 1", "Category": "IT Setup", "Task": "Initial Windows Login & Password Change", "Mentor": "IT Support", "Type": "Action"},
+        {"Phase": "Day 1", "Category": "IT Setup", "Task": "Connect to Office Wi-Fi / VPN", "Mentor": "Buddy: Sarah J.", "Type": "Action"},
+        {"Phase": "Day 1", "Category": "Orientation", "Task": "Office Tour (Fire Exits, Pantry, First Aid)", "Mentor": "Buddy: Sarah J.", "Type": "Meeting"},
         
         # DAY 2-5 - INDUCTION
-        {"Phase": "Week 1", "Category": "HR & Admin", "Task": "Complete 'Code of Conduct' Training", "Type": "Training"},
-        {"Phase": "Week 1", "Category": "HR & Admin", "Task": "Submit Bank Details in Workday", "Type": "Admin"},
-        {"Phase": "Week 1", "Category": "Introduction", "Task": "Meet with Line Manager (Expectations Setting)", "Type": "Meeting"},
-        {"Phase": "Week 1", "Category": "Introduction", "Task": "Team Introduction Presentation", "Type": "Meeting"},
+        {"Phase": "Week 1", "Category": "HR & Admin", "Task": "Complete 'Code of Conduct' Training", "Mentor": "HR Dept", "Type": "Training"},
+        {"Phase": "Week 1", "Category": "HR & Admin", "Task": "Submit Bank Details in Workday", "Mentor": "HR Dept", "Type": "Admin"},
+        {"Phase": "Week 1", "Category": "Introduction", "Task": "Meet with Line Manager (Expectations)", "Mentor": "Manager: Mike R.", "Type": "Meeting"},
+        {"Phase": "Week 1", "Category": "Introduction", "Task": "Team Introduction Presentation", "Mentor": "Manager: Mike R.", "Type": "Meeting"},
     ]
 
     # SPECIFIC TASKS FOR SE (Service Engineer)
     if role == "SE (Service Engineer)":
         tasks.extend([
-            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: SAP Service Module", "Type": "IT Ticket"},
-            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: MOM (Mobile Order Mgmt)", "Type": "IT Ticket"},
-            {"Phase": "Week 1", "Category": "Training", "Task": "LOTO (Lock Out Tag Out) Certification", "Type": "Training"},
-            {"Phase": "Week 1", "Category": "Field Prep", "Task": "Assign Buddy/Mentor for Ride-along", "Type": "Meeting"},
+            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: SAP Service Module", "Mentor": "Tech Lead: Alex", "Type": "IT Ticket"},
+            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: MOM (Mobile Order Mgmt)", "Mentor": "Tech Lead: Alex", "Type": "IT Ticket"},
+            {"Phase": "Week 1", "Category": "Training", "Task": "LOTO (Lock Out Tag Out) Certification", "Mentor": "Safety Officer", "Type": "Training"},
+            {"Phase": "Week 1", "Category": "Field Prep", "Task": "Ride-along Preparation", "Mentor": "Senior SE: John D.", "Type": "Meeting"},
         ])
 
     # SPECIFIC TASKS FOR SPE (Spare Parts Engineer)
     elif role == "SPE (Spare Parts Engineer)":
         tasks.extend([
-            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: SAP GUI (ERP)", "Type": "IT Ticket"},
-            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: GLOPPS & KOLA Access", "Type": "IT Ticket"},
-            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: Autodesk Vault & Creo", "Type": "IT Ticket"},
-            {"Phase": "Week 1", "Category": "Training", "Task": "Reman Number Creation Process (SOP)", "Type": "Training"},
-            {"Phase": "Week 1", "Category": "Training", "Task": "Warehouse Inventory Cycle Count Intro", "Type": "Training"},
+            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: SAP GUI (ERP)", "Mentor": "Logistics Lead", "Type": "IT Ticket"},
+            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: GLOPPS & KOLA Access", "Mentor": "Logistics Lead", "Type": "IT Ticket"},
+            {"Phase": "Week 1", "Category": "FAROS Access", "Task": "Request: Autodesk Vault & Creo", "Mentor": "Design Lead", "Type": "IT Ticket"},
+            {"Phase": "Week 1", "Category": "Training", "Task": "Reman Number Creation Process (SOP)", "Mentor": "Senior SPE: Emily", "Type": "Training"},
+            {"Phase": "Week 1", "Category": "Training", "Task": "Warehouse Inventory Cycle Count Intro", "Mentor": "Warehouse Mgr", "Type": "Training"},
         ])
         
     return tasks
@@ -116,7 +114,7 @@ if selected_role != st.session_state['user_role']:
     st.rerun()
 
 # Navigation
-page = st.sidebar.radio("Navigate", ["Dashboard", "FAROS Requests", "Checklist"])
+page = st.sidebar.radio("Navigate", ["Dashboard", "FAROS Requests", "Checklist", "Mentor Guide"])
 st.sidebar.markdown("---")
 
 # Links Section
@@ -161,12 +159,13 @@ if page == "Dashboard":
     
     if not day1_tasks.empty:
         st.info("⚠️ You still have 'Day 1' tasks to complete!")
-        st.dataframe(day1_tasks[['Category', 'Task', 'Type']], hide_index=True, use_container_width=True)
+        # Show specific columns
+        st.dataframe(day1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
     else:
         st.success("Day 1 tasks complete! Moving on to Week 1 goals.")
         week1_tasks = df[(df['Phase'] == 'Week 1') & (df['Status'] == False)]
         if not week1_tasks.empty:
-            st.dataframe(week1_tasks[['Category', 'Task', 'Type']], hide_index=True, use_container_width=True)
+            st.dataframe(week1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
 
 # --- PAGE 2: FAROS REQUESTS ---
 elif page == "FAROS Requests":
@@ -203,15 +202,22 @@ elif page == "Checklist":
         with st.expander(f"🗓 {phase} Tasks", expanded=True):
             phase_tasks = df[df['Phase'] == phase]
             
+            # Create headers for the list to simulate a table with controls
+            h1, h2, h3 = st.columns([0.05, 0.6, 0.35])
+            h2.caption("TASK")
+            h3.caption("MENTOR / POC") # Point of Contact
+            
             for index, row in phase_tasks.iterrows():
-                # Find original index to sync state
+                # Find original index to sync state because filtering changes indices
                 original_index = -1
                 for i, item in enumerate(st.session_state['curriculum']):
                     if item['Task'] == row['Task']:
                         original_index = i
                         break
                 
-                c1, c2 = st.columns([0.05, 0.95])
+                c1, c2, c3 = st.columns([0.05, 0.6, 0.35])
+                
+                # Column 1: Checkbox
                 with c1:
                     st.checkbox(
                         "Done", 
@@ -221,9 +227,49 @@ elif page == "Checklist":
                         args=(original_index,),
                         label_visibility="collapsed"
                     )
+                
+                # Column 2: Task Name
                 with c2:
-                    if row['Category'] == "FAROS Access":
-                        st.write(f"**{row['Task']}** (via FAROS)")
+                    if row['Status']:
+                        st.markdown(f"~~{row['Task']}~~") # Strikethrough if done
                     else:
                         st.write(f"**{row['Task']}**")
+
+                # Column 3: Mentor Name (The new feature)
+                with c3:
+                    st.info(f"👤 {row['Mentor']}", icon="ℹ️")
+
+# --- PAGE 4: MENTOR GUIDE ---
+elif page == "Mentor Guide":
+    st.title("📘 Mentor's Handbook")
+    st.warning("🔒 This section is intended for Mentors & Managers to review.")
+
+    st.subheader("💡 Best Practices for Onboarding")
+    st.markdown("""
+    * **Day 1 is about comfort:** Ensure the new hire has their hardware and coffee access before diving into technical topics.
+    * **Shadowing:** For the first 3 field visits, the new hire should only observe. Do not assign them active tasks yet.
+    * **SOP Review:** When teaching *Reman Process*, please use the updated PDF (v2.4) located in SharePoint.
+    """)
+
+    st.markdown("---")
+
+    st.subheader("📝 Feedback Criteria")
+    st.write("When evaluating the new hire during Week 1, please look for:")
+    
+    # Using columns for better layout
+    col1, col2 = st.columns(2)
+    with col1:
+        st.success("**Technical Skills**")
+        st.checkbox("Understands basic SAP navigation")
+        st.checkbox("Can identify key safety hazards (LOTO)")
+        st.checkbox("Knows how to look up part numbers in KOLA")
+        
+    with col2:
+        st.info("**Soft Skills**")
+        st.checkbox("Asks questions when unsure")
+        st.checkbox("Punctual for morning meetings")
+        st.checkbox("Shows initiative in reviewing documentation")
+        
+    st.markdown("---")
+    st.caption("Need to report an issue? Contact the Onboarding Lead at hr-onboarding@example.com")
 
