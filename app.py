@@ -6,45 +6,51 @@ st.set_page_config(page_title="AMT Onboarding Hub", layout="wide")
 
 # --- 1. DATA & CONTENT ---
 
-# --- PAGE 2: FAROS REQUESTS ---
-elif page == "FAROS Requests":
-    st.title("🔐 FAROS Access Catalogue")
-    st.markdown("Use the **FAROS Portal** link in the sidebar to request these specific tools.")
-    
-    # Determine which list to show based on role
-    role_key = "SE" if "Service" in st.session_state['user_role'] else "SPE"
-    
-    # 1. CORE ACCESS (Always visible)
-    st.subheader("🏢 Standard Access (Required for All)")
-    with st.expander("View Core Systems List", expanded=True):
-        # specific layout for long lists
-        c1, c2 = st.columns(2)
-        for i, item in enumerate(FAROS_CATALOG["Common"]):
-            if i % 2 == 0:
-                c1.markdown(f"✅ {item}")
-            else:
-                c2.markdown(f"✅ {item}")
-
-    # 2. ROLE SPECIFIC ACCESS
-    st.subheader(f"🛠 {role_key} Specialized Tools")
-    st.info(f"These tools are specific to your role as **{st.session_state['user_role']}**.")
-    
-    with st.expander(f"View {role_key} Toolset", expanded=True):
-        c1, c2 = st.columns(2)
-        items = FAROS_CATALOG[role_key]
-        
-        # Split list in half for two columns
-        half = len(items) // 2
-        
-        with c1:
-            for item in items[:half]:
-                st.markdown(f"🔹 **{item}**")
-        with c2:
-            for item in items[half:]:
-                st.markdown(f"🔹 **{item}**")
-
-    st.markdown("---")
-    st.caption("ℹ️ **Tip:** If you cannot find a specific software in FAROS, please open a 'General Inquiry' ticket in ServiceNow.")
+# EXTRACTED FROM: AMT Faros Request Catalogue (Expanded List)
+FAROS_CATALOG = {
+    "Common": [
+        "Microsoft 365 (Outlook, Teams, Excel)",
+        "Cisco AnyConnect VPN (Remote Access)",
+        "Workday (HR & Payroll)",
+        "Concur (Travel & Expenses)",
+        "ServiceNow (IT Helpdesk)",
+        "Slack (Internal Comm Channels)",
+        "LastPass Enterprise (Password Manager)",
+        "Zoom (Video Conferencing)",
+        "SharePoint: Global Engineering",
+        "Box (Cloud Storage)",
+        "Udemy Business (Learning Portal)",
+        "Internal Wiki (Confluence)"
+    ],
+    "SPE": [
+        "SAP GUI: ERP System (Production)",
+        "GLOPPS (Global Logistics & Parts)",
+        "KOLA (Parts Documentation DB)",
+        "RUMBA (Legacy Parts Lookup)",
+        "Autodesk Vault (CAD Data Management)",
+        "Creo MCAD (View & Edit License)",
+        "Agile PLM (Product Lifecycle Mgmt)",
+        "PowerBI Desktop (Inventory Analytics)",
+        "JIRA (Engineering Ticket Tracking)",
+        "Tableau (Supply Chain Dashboards)",
+        "Teamcenter (PLM Viewer)",
+        "Matlab (Simulation License)"
+    ],
+    "SE": [
+        "SAP Service Cloud (C4C)",
+        "MOM (Mobile Order Management App)",
+        "LOTO Safety Portal (Lock Out Tag Out)",
+        "ESR Tool (Electronic Service Report)",
+        "Hydraulic Schematics Viewer (HSV)",
+        "Salesforce CRM (Customer History)",
+        "ServiceMax (Field Dispatch)",
+        "Fleet Management System (Vehicle Logs)",
+        "PLC Diagnostic Tool (Remote Connect)",
+        "Electrical Diagrams Database (EDD)",
+        "Field Safety App (Mobile)",
+        "VPN Token (Hardware)"
+    ]
+}
 
 # EXTRACTED FROM: AMT Program Links
 IMPORTANT_LINKS = {
@@ -66,7 +72,7 @@ def get_checklist_data(role):
         {"Phase": "Day 1", "Category": "IT Setup", "Task": "Connect to Office Wi-Fi / VPN", "Mentor": "Buddy: Sarah J.", "Type": "Action"},
         {"Phase": "Day 1", "Category": "Orientation", "Task": "Office Tour (Fire Exits, Pantry, First Aid)", "Mentor": "Buddy: Sarah J.", "Type": "Meeting"},
         
-        # DAY 2-5 - INDUCTION
+        # WEEK 1 - GENERAL
         {"Phase": "Week 1", "Category": "HR & Admin", "Task": "Complete 'Code of Conduct' Training", "Mentor": "HR Dept", "Type": "Training"},
         {"Phase": "Week 1", "Category": "HR & Admin", "Task": "Submit Bank Details in Workday", "Mentor": "HR Dept", "Type": "Admin"},
         {"Phase": "Week 1", "Category": "Introduction", "Task": "Meet with Line Manager (Expectations)", "Mentor": "Manager: Mike R.", "Type": "Meeting"},
@@ -190,19 +196,38 @@ elif page == "FAROS Requests":
     # Determine which list to show based on role
     role_key = "SE" if "Service" in st.session_state['user_role'] else "SPE"
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("✅ Core Access (Everyone)")
-        for item in FAROS_CATALOG["Common"]:
-            st.markdown(f"- {item}")
-            
-    with col2:
-        st.subheader(f"🛠 {role_key} Specific Tools")
-        for item in FAROS_CATALOG[role_key]:
-            st.markdown(f"- **{item}**")
+    # 1. CORE ACCESS (Always visible)
+    st.subheader("🏢 Standard Access (Required for All)")
+    with st.expander("View Core Systems List", expanded=True):
+        c1, c2 = st.columns(2)
+        items = FAROS_CATALOG["Common"]
+        half = (len(items) + 1) // 2
+        
+        with c1:
+            for item in items[:half]:
+                st.markdown(f"✅ {item}")
+        with c2:
+            for item in items[half:]:
+                st.markdown(f"✅ {item}")
 
-    st.info("ℹ️ **Tip:** When requesting SAP access in FAROS, make sure to select the correct 'Profile' for your region.")
+    # 2. ROLE SPECIFIC ACCESS
+    st.subheader(f"🛠 {role_key} Specialized Tools")
+    st.info(f"These tools are specific to your role as **{st.session_state['user_role']}**.")
+    
+    with st.expander(f"View {role_key} Toolset", expanded=True):
+        c1, c2 = st.columns(2)
+        items = FAROS_CATALOG[role_key]
+        half = (len(items) + 1) // 2
+        
+        with c1:
+            for item in items[:half]:
+                st.markdown(f"🔹 **{item}**")
+        with c2:
+            for item in items[half:]:
+                st.markdown(f"🔹 **{item}**")
+
+    st.markdown("---")
+    st.caption("ℹ️ **Tip:** If you cannot find a specific software in FAROS, please open a 'General Inquiry' ticket in ServiceNow.")
 
 # --- PAGE 3: CHECKLIST ---
 elif page == "Checklist":
@@ -287,5 +312,6 @@ elif page == "Mentor Guide":
         
     st.markdown("---")
     st.caption("Need to report an issue? Contact the Onboarding Lead at hr-onboarding@example.com")
+
 
 
