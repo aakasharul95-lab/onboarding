@@ -74,6 +74,22 @@ NAVIGATOR_COURSES = {
     ]
 }
 
+# NEW: TOOLKIT (Tidinfo, SCORE, etc.)
+TOOLKIT = {
+    "Common": [
+        "Tidinfo – Technical information portal",
+        "SCORE – Service & Customer Operations Reporting Engine"
+    ],
+    "SPE": [
+        "Parts Costing Calculator",
+        "BOM Comparison Utility"
+    ],
+    "SE": [
+        "Service Checklists Mobile Pack",
+        "Field Report Template Pack"
+    ]
+}
+
 IMPORTANT_LINKS = {
     "FAROS (Access Portal)": "https://faros.internal.example.com",
     "Navigator (Learning)": "https://navigator.internal.example.com",
@@ -110,6 +126,7 @@ def get_checklist_data(role: str):
         {"Phase": "Day 1", "Category": "Logistics", "Task": "Collect Laptop, Mobile & Headset", "Mentor": "IT Support", "Type": "Pickup"},
         {"Phase": "Day 1", "Category": "IT Setup", "Task": "Initial Windows Login", "Mentor": "IT Support", "Type": "Action"},
         {"Phase": "Day 1", "Category": "Orientation", "Task": "Office Tour (Fire Exits)", "Mentor": "Buddy: Sarah J.", "Type": "Meeting"},
+
         {"Phase": "Week 1", "Category": "HR", "Task": "Submit Bank Details", "Mentor": "HR Dept", "Type": "Admin"},
         {"Phase": "Week 1", "Category": "Intro", "Task": "Team Intro Presentation", "Mentor": "Manager: Mike R.", "Type": "Meeting"},
     ]
@@ -263,10 +280,12 @@ if page == "Dashboard":
 # PAGE: REQUESTS & LEARNING
 elif page == "Requests & Learning":
     st.title("📚 Requests & Learning")
-    st.markdown("Here you can find your IT Access Requests and your Mandatory Training.")
+    st.markdown("Here you can find your IT Access Requests, Mandatory Training, and Toolkit.")
 
-    tab1, tab2 = st.tabs(["🔐 FAROS Access Requests", "🎓 Navigator Courses"])
+    # Now 3 tabs: FAROS, Navigator, Toolkit
+    tab1, tab2, tab3 = st.tabs(["🔐 FAROS Access Requests", "🎓 Navigator Courses", "🧰 Toolkit"])
 
+    # --- TAB 1: FAROS ACCESS ---
     with tab1:
         st.info("Use the **FAROS Portal** link in the sidebar to request these tools.")
 
@@ -294,6 +313,7 @@ elif page == "Requests & Learning":
                 for item in items[half:]:
                     st.markdown(f"🔹 **{item}**")
 
+    # --- TAB 2: NAVIGATOR COURSES ---
     with tab2:
         st.info("Log in to **Navigator** (link in sidebar) to complete these modules.")
 
@@ -306,6 +326,22 @@ elif page == "Requests & Learning":
         st.subheader(f"🧠 {role_key} Role-Specific Training")
         for item in NAVIGATOR_COURSES[role_key]:
             st.success(f"🎓 {item}")
+
+    # --- TAB 3: TOOLKIT ---
+    with tab3:
+        st.title("🧰 Role Toolkit")
+
+        st.subheader("🔗 Common Tools")
+        for item in TOOLKIT["Common"]:
+            st.markdown(f"- {item}")
+
+        st.markdown("---")
+
+        st.subheader(f"🧩 {role_key} Role-Specific Toolkit")
+        for item in TOOLKIT[role_key]:
+            st.markdown(f"- {item}")
+
+        st.info("If you can't access a tool, raise a request via FAROS or contact the IT Helpdesk.")
 
 # PAGE: CHECKLIST
 elif page == "Checklist":
