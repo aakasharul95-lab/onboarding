@@ -126,7 +126,7 @@ ACRONYMS = {
     "SPE": "Spare Parts Engineer",
     "SE": "Service Engineer",
     "FAROS": "Federated Access Request System",
-    "VPN": "Virtual Private Network"
+    "PPE": "Personal Protective Equipment"
 }
 
 # CONTACTS
@@ -369,6 +369,7 @@ elif page == "Good to Know":
     else:
         st.warning("⚠️ Graphviz is not installed. The system map cannot be displayed.")
         st.code("pip install graphviz", language="bash")
+
 
 
 
