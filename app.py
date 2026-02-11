@@ -5,7 +5,6 @@ import pandas as pd
 st.set_page_config(page_title="AMT Onboarding Hub", layout="wide", page_icon="🚀")
 
 # --- 0. LIBRARY CHECK (CRASH GUARD) ---
-# This prevents the app from crashing if graphviz isn't installed
 try:
     import graphviz
     has_graphviz = True
@@ -20,7 +19,7 @@ def get_tech_stack_graph(role):
         return None
         
     graph = graphviz.Digraph()
-    graph.attr(rankdir='LR') # Left to Right layout
+    graph.attr(rankdir='LR') 
     graph.attr('node', shape='box', style='filled', fontname='Helvetica')
     
     if "Service" in role:
@@ -89,11 +88,32 @@ FAROS_CATALOG = {
     ]
 }
 
+# NEW: NAVIGATOR TRAINING COURSES
+NAVIGATOR_COURSES = {
+    "Mandatory": [
+        "Global Data Privacy & GDPR (30 mins)",
+        "Cybersecurity Awareness: Phishing (15 mins)",
+        "Code of Conduct: Anti-Bribery (45 mins)",
+        "Diversity & Inclusion Basics (20 mins)",
+        "Health & Safety: Office Ergonomics (15 mins)"
+    ],
+    "SPE": [
+        "SAP ERP: Supply Chain Basics (60 mins)",
+        "Logistics 101: Incoterms (30 mins)",
+        "Agile PLM: Document Control (45 mins)"
+    ],
+    "SE": [
+        "Field Safety: Electrical Hazards (60 mins)",
+        "Defensive Driving Certification (External)",
+        "Customer Service: Handling Conflict (30 mins)"
+    ]
+}
+
 IMPORTANT_LINKS = {
     "FAROS (Access Portal)": "https://faros.internal.example.com", 
+    "Navigator (Learning)": "https://navigator.internal.example.com",
     "Workday (HR)": "https://www.myworkday.com",
-    "Concur (Expenses)": "https://www.concursolutions.com",
-    "E-Learning": "https://learning.internal.example.com"
+    "Concur (Expenses)": "https://www.concursolutions.com"
 }
 
 # ACRONYMS
@@ -163,8 +183,8 @@ if selected_role != st.session_state['user_role']:
     reset_user()
     st.rerun()
 
-# Updated Navigation - "Meet the Squad" removed
-page = st.sidebar.radio("Navigate", ["Dashboard", "FAROS Requests", "Checklist", "Mentor Guide", "Good to Know"])
+# Updated Navigation
+page = st.sidebar.radio("Navigate", ["Dashboard", "Requests & Learning", "Checklist", "Mentor Guide", "Good to Know"])
 
 # CONTACT WIDGET
 st.sidebar.markdown("---")
@@ -234,35 +254,57 @@ if page == "Dashboard":
             if not week1_tasks.empty:
                 st.dataframe(week1_tasks[['Category', 'Task', 'Mentor']], hide_index=True, use_container_width=True)
 
-# --- PAGE 2: FAROS REQUESTS ---
-elif page == "FAROS Requests":
-    st.title("🔐 FAROS Access Catalogue")
+# --- PAGE 2: REQUESTS & LEARNING (Combined) ---
+elif page == "Requests & Learning":
+    st.title("📚 Requests & Learning")
+    st.markdown("Here you can find your IT Access Requests and your Mandatory Training.")
+    
     role_key = "SE" if "Service" in st.session_state['user_role'] else "SPE"
     
-    st.subheader("🏢 Standard Access (Required for All)")
-    with st.expander("View Core Systems List", expanded=True):
-        c1, c2 = st.columns(2)
-        items = FAROS_CATALOG["Common"]
-        half = (len(items) + 1) // 2
-        with c1:
-            for item in items[:half]:
-                st.markdown(f"✅ {item}")
-        with c2:
-            for item in items[half:]:
-                st.markdown(f"✅ {item}")
+    # Create two tabs
+    tab1, tab2 = st.tabs(["🔐 FAROS Access Requests", "🎓 Navigator Courses"])
+    
+    # --- TAB 1: FAROS ACCESS ---
+    with tab1:
+        st.info("Use the **FAROS Portal** link in the sidebar to request these tools.")
+        
+        st.subheader("🏢 Standard Access (Required for All)")
+        with st.expander("View Core Systems List", expanded=True):
+            c1, c2 = st.columns(2)
+            items = FAROS_CATALOG["Common"]
+            half = (len(items) + 1) // 2
+            with c1:
+                for item in items[:half]:
+                    st.markdown(f"✅ {item}")
+            with c2:
+                for item in items[half:]:
+                    st.markdown(f"✅ {item}")
 
-    st.subheader(f"🛠 {role_key} Specialized Tools")
-    st.info(f"These tools are specific to your role as **{st.session_state['user_role']}**.")
-    with st.expander(f"View {role_key} Toolset", expanded=True):
-        c1, c2 = st.columns(2)
-        items = FAROS_CATALOG[role_key]
-        half = (len(items) + 1) // 2
-        with c1:
-            for item in items[:half]:
-                st.markdown(f"🔹 **{item}**")
-        with c2:
-            for item in items[half:]:
-                st.markdown(f"🔹 **{item}**")
+        st.subheader(f"🛠 {role_key} Specialized Tools")
+        with st.expander(f"View {role_key} Toolset", expanded=True):
+            c1, c2 = st.columns(2)
+            items = FAROS_CATALOG[role_key]
+            half = (len(items) + 1) // 2
+            with c1:
+                for item in items[:half]:
+                    st.markdown(f"🔹 **{item}**")
+            with c2:
+                for item in items[half:]:
+                    st.markdown(f"🔹 **{item}**")
+
+    # --- TAB 2: NAVIGATOR COURSES ---
+    with tab2:
+        st.info("Log in to **Navigator** (link in sidebar) to complete these modules.")
+        
+        st.subheader("🚨 Mandatory Compliance (Due Week 1)")
+        for item in NAVIGATOR_COURSES["Mandatory"]:
+            st.warning(f"⚠️ {item}")
+            
+        st.markdown("---")
+        
+        st.subheader(f"🧠 {role_key} Role-Specific Training")
+        for item in NAVIGATOR_COURSES[role_key]:
+            st.success(f"🎓 {item}")
 
 # --- PAGE 3: CHECKLIST ---
 elif page == "Checklist":
@@ -308,7 +350,7 @@ elif page == "Mentor Guide":
     """)
     st.caption("Need to report an issue? Contact the Onboarding Lead at hr-onboarding@example.com")
 
-# --- PAGE 5: GOOD TO KNOW (System Map moved here) ---
+# --- PAGE 5: GOOD TO KNOW ---
 elif page == "Good to Know":
     st.title("🧩 Good to Know")
     st.markdown("Context and Reference material for your role.")
