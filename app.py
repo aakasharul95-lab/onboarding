@@ -61,9 +61,10 @@ IMPORTANT_LINKS = {
     "E-Learning Portal": "https://learning.internal.example.com"
 }
 
-# ACRONYM DICTIONARY (New Feature)
+# ACRONYM DICTIONARY
 ACRONYMS = {
-    "AI": "Aakash Intelligence",
+    "GLOPPS": "Global Logistics & Parts Planning System",
+    "KOLA": "Key On-Line Access (Parts Documentation DB)",
     "LOTO": "Lock Out Tag Out (Safety Procedure)",
     "MOM": "Mobile Order Management",
     "SAP": "Systems, Applications, and Products (ERP Software)",
@@ -152,7 +153,7 @@ if selected_role != st.session_state['user_role']:
 # Navigation
 page = st.sidebar.radio("Navigate", ["Dashboard", "FAROS Requests", "Checklist", "Mentor Guide"])
 
-# --- NEW FEATURE: ACRONYM BUSTER ---
+# --- SIDEBAR WIDGET: ACRONYM BUSTER ---
 st.sidebar.markdown("---")
 with st.sidebar.expander("🧠 Acronym Buster"):
     search_term = st.text_input("Look up a term:", placeholder="e.g. MOM")
@@ -327,28 +328,10 @@ elif page == "Mentor Guide":
     * **Shadowing:** For the first 3 field visits, the new hire should only observe. Do not assign them active tasks yet.
     * **SOP Review:** When teaching *Reman Process*, please use the updated PDF (v2.4) located in SharePoint.
     """)
-
-    st.markdown("---")
-
-    st.subheader("📝 Feedback Criteria")
-    st.write("When evaluating the new hire during Week 1, please look for:")
     
-    # Using columns for better layout
-    col1, col2 = st.columns(2)
-    with col1:
-        st.success("**Technical Skills**")
-        st.checkbox("Understands basic SAP navigation")
-        st.checkbox("Can identify key safety hazards (LOTO)")
-        st.checkbox("Knows how to look up part numbers in KOLA")
-        
-    with col2:
-        st.info("**Soft Skills**")
-        st.checkbox("Asks questions when unsure")
-        st.checkbox("Punctual for morning meetings")
-        st.checkbox("Shows initiative in reviewing documentation")
-        
     st.markdown("---")
     st.caption("Need to report an issue? Contact the Onboarding Lead at hr-onboarding@example.com")
+
 
 
 
