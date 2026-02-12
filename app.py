@@ -497,29 +497,45 @@ if page == "Dashboard":
     df = pd.DataFrame(st.session_state['curriculum'])
     checklist_p, navigator_p, overall_p = get_overall_progress()
     overall_percent = int(overall_p * 100)
+    nav_done, nav_total = get_navigator_progress()
 
-    col1, col2, col3, col4 = st.columns([1.2, 1, 1, 1])
-    with col1:
+    # >>> NEW VERTICAL STATUS BLOCK + METRICS <<<
+    left, right = st.columns([1.3, 2])
+
+    with left:
         st.markdown("**Overall Onboarding Status**")
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div style="font-size:0.8rem; opacity:0.8; margin-bottom:0.2rem;">
+                    Combined checklist + Navigator
+                </div>
+                <div style="font-size:2.0rem; font-weight:700; margin-bottom:0.2rem;">
+                    {overall_percent}%
+                </div>
+                <div style="margin-bottom:0.6rem;">
+            """,
+            unsafe_allow_html=True,
+        )
         render_progress_pill(overall_percent)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    with col2:
-        st.metric("Checklist completion", f"{int(checklist_p * 100)}%")
-
-    with col3:
-        nav_done, nav_total = get_navigator_progress()
-        st.metric("Navigator courses", f"{nav_done} / {nav_total}")
-
-    with col4:
-        if not df.empty:
-            faros_tasks = df[df['Category'] == 'Access']
-            if not faros_tasks.empty:
-                faros_done = faros_tasks['Status'].sum()
-                st.metric("Access requests done", f"{faros_done} / {len(faros_tasks)}")
+    with right:
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Checklist completion", f"{int(checklist_p * 100)}%")
+        with m2:
+            st.metric("Navigator courses", f"{nav_done} / {nav_total}")
+        with m3:
+            if not df.empty:
+                faros_tasks = df[df['Category'] == 'Access']
+                if not faros_tasks.empty:
+                    faros_done = faros_tasks['Status'].sum()
+                    st.metric("Access requests done", f"{faros_done} / {len(faros_tasks)}")
+                else:
+                    st.metric("Access requests done", "0 / 0")
             else:
                 st.metric("Access requests done", "0 / 0")
-        else:
-            st.metric("Access requests done", "0 / 0")
 
     st.progress(overall_p)
     render_dynamic_tip(checklist_p, navigator_p)
@@ -767,11 +783,3 @@ elif page == "Good to Know":
         st.warning("Graphviz is not installed. The system map cannot be displayed.")
         with st.expander("How to install Graphviz"):
             st.code("pip install graphviz\n# plus OS-level graphviz package, e.g.\n# sudo apt-get install graphviz", language="bash")
-
-
-
-
-
-
-
-
