@@ -40,7 +40,7 @@ FAROS_CATALOG: Dict[str, List[str]] = {
         "RUMBA (Legacy Parts Lookup)",
         "Autodesk Vault (CAD Data Management)",
         "Creo MCAD (View & Edit License)",
-        "Agile PLM (Product Lifecycle Mgmt)",
+        "Agile PLM: Product Lifecycle Mgmt",
         "PowerBI Desktop (Inventory Analytics)"
     ],
     "SE": [
@@ -115,90 +115,59 @@ KEY_CONTACTS: Dict[str, str] = {
     "Safety Officer": "Ext. 9110"
 }
 
-# --- 2. HELPER FUNCTIONS & STYLES ---
+# --- 2. HELPER FUNCTIONS & STYLE ---
 
 
 def inject_global_css():
-    """Inject some CSS for a more polished look (glass cards, background, fonts)."""
+    """
+    Add theme-friendly styling: no hardcoded background colors,
+    only borders, radii, slight opacity, so it works in light & dark.
+    """
     st.markdown(
         """
         <style>
-        /* Global background and font adjustments */
-        html, body, [data-testid="stAppViewContainer"] {
-            background: radial-gradient(circle at top left, #eef2ff 0, #f9fafb 40%, #ffffff 100%);
-        }
-
-        [data-testid="stAppViewContainer"] {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-        }
-
-        /* Sidebar styling */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #020617 0%, #0f172a 60%, #020617 100%);
-            color: #e5e7eb;
-        }
-        [data-testid="stSidebar"] * {
-            color: #e5e7eb !important;
-        }
-        [data-testid="stSidebar"] a {
-            color: #a5b4fc !important;
-        }
-
-        /* Hero card styling (glassmorphism) */
-        .hero-card {
-            padding: 1.2rem 1.6rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(248, 250, 252, 0.82);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-        }
-
-        .pill {
-            display: inline-block;
-            padding: 0.12rem 0.6rem;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            background-color: #eef2ff;
-            color: #4338ca;
-            border: 1px solid #e0e7ff;
-            margin-right: 0.35rem;
-        }
-
-        .soft-card {
-            padding: 0.75rem 1rem;
-            border-radius: 0.9rem;
-            border: 1px solid #e5e7eb;
-            background-color: #f9fafb;
-        }
-
-        .muted {
-            color: #6b7280;
-            font-size: 0.9rem;
-        }
-
         /* Slightly smaller metric labels */
         [data-testid="stMetricLabel"] > div {
             font-size: 0.85rem;
         }
 
-        .sm-label {
-            font-size: 0.8rem;
-            color: #6b7280;
+        /* Common card styling with theme-friendly colors */
+        .hero-card, .soft-card {
+            padding: 1.0rem 1.3rem;
+            border-radius: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            background-color: rgba(148, 163, 184, 0.05);
         }
 
-        .phase-title {
-            display: flex;
-            align-items: baseline;
-            gap: 0.4rem;
+        .hero-card h2 {
+            margin-bottom: 0.35rem;
         }
-        .phase-chip {
-            font-size: 0.7rem;
-            padding: 0.1rem 0.5rem;
+
+        .pill {
+            display: inline-block;
+            padding: 0.2rem 0.7rem;
             border-radius: 999px;
-            background: #ecfeff;
-            color: #0e7490;
-            border: 1px solid #bae6fd;
+            font-size: 0.75rem;
+            border: 1px solid rgba(129, 140, 248, 0.7);
+            background-color: rgba(79, 70, 229, 0.06);
+            color: rgba(129, 140, 248, 0.95);
+            margin-right: 0.35rem;
+        }
+
+        .muted {
+            opacity: 0.85;
+            font-size: 0.9rem;
+        }
+
+        .sm-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* Checklist row hover effect */
+        .checklist-row:hover {
+            background-color: rgba(148, 163, 184, 0.10);
+            border-radius: 0.4rem;
         }
         </style>
         """,
@@ -419,7 +388,6 @@ def render_dynamic_tip(checklist_p: float, navigator_p: float) -> None:
 
 
 def extract_role_label(full_label: str) -> str:
-    """Return the part before '(' or the full string if no parenthesis."""
     if "(" in full_label:
         return full_label.split("(", 1)[0].strip()
     return full_label.strip()
@@ -505,8 +473,8 @@ if page == "Dashboard":
         <div class="hero-card">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;">
                 <div style="flex:1;">
-                    <h2 style="margin-bottom: 0.3rem;">Welcome, {role_label} 👋</h2>
-                    <p class="muted" style="margin-bottom: 0.4rem;">
+                    <h2>Welcome, {role_label} 👋</h2>
+                    <p class="muted">
                         This hub keeps track of your equipment, access requests, and training — everything you need to feel at home in AMT.
                     </p>
                 </div>
@@ -526,7 +494,6 @@ if page == "Dashboard":
     checklist_p, navigator_p, overall_p = get_overall_progress()
     overall_percent = int(overall_p * 100)
 
-    # TOP METRICS
     col1, col2, col3, col4 = st.columns([1.2, 1, 1, 1])
     with col1:
         st.markdown("**Overall Onboarding Status**")
@@ -551,8 +518,6 @@ if page == "Dashboard":
             st.metric("Access requests done", "0 / 0")
 
     st.progress(overall_p)
-
-    # Dynamic tip
     render_dynamic_tip(checklist_p, navigator_p)
 
     if overall_percent == 100:
@@ -560,8 +525,6 @@ if page == "Dashboard":
         st.success("🎉 You have completed all onboarding tasks (checklist + Navigator)!")
 
     st.markdown("---")
-
-    # TODAY'S FOCUS
     st.subheader("📅 Today’s Focus")
 
     if not df.empty:
@@ -576,7 +539,6 @@ if page == "Dashboard":
         focus_tasks = remaining_tasks.head(N)
         num_checklist_focus = len(focus_tasks)
 
-        # Split layout: checklist focus + Navigator focus
         c_left, c_right = st.columns([1.4, 1])
 
         with c_left:
@@ -612,8 +574,6 @@ if page == "Dashboard":
             st.success("✅ All checklist tasks and Navigator courses for your role are complete!")
 
         st.markdown("---")
-
-        # Export checklist
         st.markdown("**Need a copy for your manager or HR?**")
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button(
@@ -628,16 +588,10 @@ if page == "Dashboard":
 # PAGE: REQUESTS & LEARNING
 elif page == "Requests & Learning":
     st.title("📚 Requests & Learning")
-
-    st.markdown(
-        """
-        Use this section to see which tools you’ll use, and which trainings you should complete in Navigator.
-        """
-    )
+    st.markdown("See which tools you’ll use, and which trainings you should complete in Navigator.")
 
     tab1, tab2, tab3 = st.tabs(["🔐 FAROS Access Requests", "🎓 Navigator Courses", "🧰 Toolkit"])
 
-    # FAROS
     with tab1:
         st.info("Use the **FAROS Portal** (link in the sidebar) to request or check access status.")
 
@@ -649,7 +603,6 @@ elif page == "Requests & Learning":
         with st.expander(f"View {role_key} toolset", expanded=True):
             render_two_column_list(FAROS_CATALOG[role_key], icon_left="🔹", bold=True)
 
-    # NAVIGATOR
     with tab2:
         st.info("Log in to **Navigator** (sidebar link) to complete these modules and mark them here as done.")
 
@@ -678,16 +631,10 @@ elif page == "Requests & Learning":
             )
             set_navigator_course(role_key, course, checked)
 
-    # TOOLKIT
     with tab3:
         st.title("🧰 Role Toolkit")
 
         st.subheader("🔗 Common tools")
-        st.markdown(
-            """
-            These are shared tools that most people in AMT use regularly.
-            """
-        )
         for item in TOOLKIT["Common"]:
             st.markdown(f"- {item}")
 
@@ -709,7 +656,6 @@ elif page == "Checklist":
     if df.empty:
         st.info("No checklist items defined yet.")
     else:
-        # Phase progress summary
         st.markdown("### Phase overview")
         phase_cols = st.columns(min(len(df['Phase'].unique()), 4))
         unique_phases = df['Phase'].unique().tolist()
@@ -726,7 +672,6 @@ elif page == "Checklist":
 
         st.markdown("---")
 
-        # Detailed list
         for phase in unique_phases:
             with st.expander(f"🗓 {phase} tasks", expanded=True):
                 phase_tasks = df[df['Phase'] == phase]
@@ -761,9 +706,7 @@ elif page == "Mentor Guide":
     st.warning("🔒 This section is intended for Mentors & Managers.")
 
     st.markdown(
-        """
-        The goal of this guide is to make sure new colleagues feel supported, safe, and productive in their first weeks.
-        """
+        "The goal of this guide is to make sure new colleagues feel supported, safe, and productive in their first weeks."
     )
 
     colA, colB = st.columns(2)
@@ -797,9 +740,7 @@ elif page == "Good to Know":
 
     st.subheader("System architecture")
     st.markdown(
-        """
-        Seeing how tools connect makes it easier to understand where your work fits in the bigger AMT picture.
-        """
+        "Seeing how tools connect makes it easier to understand where your work fits in the bigger AMT picture."
     )
 
     if has_graphviz:
@@ -808,14 +749,13 @@ elif page == "Good to Know":
 
         try:
             st.graphviz_chart(graph)
-            st.info("💡 Tip: Use the fullscreen button on the chart to inspect all nodes comfortably.")
+            st.info("Tip: Use the fullscreen button on the chart to inspect all nodes comfortably.")
         except Exception:
             st.warning("Graphviz is installed, but rendering failed. Check if the system-level Graphviz is installed.")
     else:
-        st.warning("⚠️ Graphviz is not installed. The system map cannot be displayed.")
+        st.warning("Graphviz is not installed. The system map cannot be displayed.")
         with st.expander("How to install Graphviz"):
             st.code("pip install graphviz\n# plus OS-level graphviz package, e.g.\n# sudo apt-get install graphviz", language="bash")
-
 
 
 
