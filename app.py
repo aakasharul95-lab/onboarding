@@ -422,12 +422,21 @@ if selected_role != st.session_state['user_role']:
     st.session_state['first_visit'] = False
     st.rerun()
 
+# Navigation directly below role selector
+page = st.sidebar.radio(
+    "Navigate",
+    ["Dashboard", "Requests & Learning", "Checklist", "Mentor Guide", "Good to Know"],
+    index=0
+)
+
 st.sidebar.markdown("---")
+
 with st.sidebar.expander("🆘 Who do I call?", expanded=False):
     for dept, contact in KEY_CONTACTS.items():
         st.write(f"**{dept}:** `{contact}`")
 
 st.sidebar.markdown("---")
+
 # Enhanced Acronym Buster – supports partial matches
 with st.sidebar.expander("🧠 Acronym Buster", expanded=False):
     search_term = st.text_input("Look up a term:", placeholder="Type acronym or part of a word...")
@@ -447,15 +456,10 @@ with st.sidebar.expander("🧠 Acronym Buster", expanded=False):
             st.error("No matching acronyms found.")
 
 st.sidebar.markdown("---")
+
 st.sidebar.subheader("🔗 Quick Links")
 for name, url in IMPORTANT_LINKS.items():
     st.sidebar.markdown(f"- [{name}]({url})")
-
-page = st.sidebar.radio(
-    "Navigate",
-    ["Dashboard", "Requests & Learning", "Checklist", "Mentor Guide", "Good to Know"],
-    index=0
-)
 
 # --- 5. PAGES ---
 
@@ -463,7 +467,7 @@ role_key = get_role_key(st.session_state['user_role'])
 
 # PAGE: DASHBOARD
 if page == "Dashboard":
-    first_name_role = selected_role.split('(')[0].strip()
+    first_name_role = selected_role.split('')[0].strip() if '(' not in selected_role else selected_role.split('(')[0].strip()
 
     # HERO
     st.markdown(
