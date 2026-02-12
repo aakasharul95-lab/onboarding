@@ -115,30 +115,48 @@ KEY_CONTACTS: Dict[str, str] = {
     "Safety Officer": "Ext. 9110"
 }
 
-# --- 2. HELPER FUNCTIONS ---
+# --- 2. HELPER FUNCTIONS & STYLES ---
 
 
 def inject_global_css():
-    """Inject some simple CSS to make things look more 'app-like'."""
+    """Inject some CSS for a more polished look (glass cards, background, fonts)."""
     st.markdown(
         """
         <style>
-        /* Make metric labels a bit more compact */
-        [data-testid="stMetricLabel"] > div {
-            font-size: 0.85rem;
+        /* Global background and font adjustments */
+        html, body, [data-testid="stAppViewContainer"] {
+            background: radial-gradient(circle at top left, #eef2ff 0, #f9fafb 40%, #ffffff 100%);
         }
 
-        /* Hero card styling */
+        [data-testid="stAppViewContainer"] {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+        }
+
+        /* Sidebar styling */
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #020617 0%, #0f172a 60%, #020617 100%);
+            color: #e5e7eb;
+        }
+        [data-testid="stSidebar"] * {
+            color: #e5e7eb !important;
+        }
+        [data-testid="stSidebar"] a {
+            color: #a5b4fc !important;
+        }
+
+        /* Hero card styling (glassmorphism) */
         .hero-card {
-            padding: 1.1rem 1.5rem;
-            border-radius: 0.8rem;
-            border: 1px solid #e5e7eb;
-            background: linear-gradient(120deg, #f9fafb 0%, #eef2ff 50%, #f9fafb 100%);
+            padding: 1.2rem 1.6rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(248, 250, 252, 0.82);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
         }
 
         .pill {
             display: inline-block;
-            padding: 0.10rem 0.55rem;
+            padding: 0.12rem 0.6rem;
             border-radius: 999px;
             font-size: 0.75rem;
             background-color: #eef2ff;
@@ -147,31 +165,40 @@ def inject_global_css():
             margin-right: 0.35rem;
         }
 
-        .phase-badge {
-            display: inline-block;
-            padding: 0.1rem 0.5rem;
-            border-radius: 999px;
-            font-size: 0.72rem;
-            background-color: #ecfeff;
-            color: #0891b2;
-            border: 1px solid #cffafe;
-            margin-left: 0.3rem;
-        }
-
         .soft-card {
             padding: 0.75rem 1rem;
-            border-radius: 0.6rem;
+            border-radius: 0.9rem;
             border: 1px solid #e5e7eb;
             background-color: #f9fafb;
         }
 
-        .section-title {
-            margin-bottom: 0.25rem;
-        }
-
         .muted {
             color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        /* Slightly smaller metric labels */
+        [data-testid="stMetricLabel"] > div {
             font-size: 0.85rem;
+        }
+
+        .sm-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .phase-title {
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
+        }
+        .phase-chip {
+            font-size: 0.7rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 999px;
+            background: #ecfeff;
+            color: #0e7490;
+            border: 1px solid #bae6fd;
         }
         </style>
         """,
@@ -391,6 +418,13 @@ def render_dynamic_tip(checklist_p: float, navigator_p: float) -> None:
         st.success("Your checklist is complete — keep an eye on upcoming **training modules** and field activities.")
 
 
+def extract_role_label(full_label: str) -> str:
+    """Return the part before '(' or the full string if no parenthesis."""
+    if "(" in full_label:
+        return full_label.split("(", 1)[0].strip()
+    return full_label.strip()
+
+
 # --- 3. STATE INITIALIZATION ---
 
 if 'user_role' not in st.session_state:
@@ -399,9 +433,6 @@ if 'user_role' not in st.session_state:
 if 'curriculum' not in st.session_state:
     raw_data_init = get_checklist_data(st.session_state['user_role'])
     st.session_state['curriculum'] = [{**t, "Status": False} for t in raw_data_init]
-
-if 'first_visit' not in st.session_state:
-    st.session_state['first_visit'] = True
 
 init_navigator_status()
 inject_global_css()
@@ -419,7 +450,6 @@ selected_role = st.sidebar.selectbox(
 if selected_role != st.session_state['user_role']:
     st.session_state['user_role'] = selected_role
     reset_user()
-    st.session_state['first_visit'] = False
     st.rerun()
 
 # Navigation directly below role selector
@@ -467,16 +497,24 @@ role_key = get_role_key(st.session_state['user_role'])
 
 # PAGE: DASHBOARD
 if page == "Dashboard":
-    first_name_role = selected_role.split('')[0].strip() if '(' not in selected_role else selected_role.split('(')[0].strip()
+    role_label = extract_role_label(selected_role)
 
     # HERO
     st.markdown(
         f"""
         <div class="hero-card">
-            <h2 style="margin-bottom: 0.3rem;">Welcome, {first_name_role} 👋</h2>
-            <p class="muted" style="margin-bottom: 0.4rem;">
-                This hub keeps track of your equipment, access requests, and training — everything you need to feel at home in AMT.
-            </p>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;">
+                <div style="flex:1;">
+                    <h2 style="margin-bottom: 0.3rem;">Welcome, {role_label} 👋</h2>
+                    <p class="muted" style="margin-bottom: 0.4rem;">
+                        This hub keeps track of your equipment, access requests, and training — everything you need to feel at home in AMT.
+                    </p>
+                </div>
+                <div style="text-align:right;">
+                    <span class="sm-label">Role</span><br/>
+                    <span style="font-size:0.9rem;font-weight:600;">{selected_role}</span>
+                </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True
