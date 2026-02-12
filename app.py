@@ -121,7 +121,7 @@ KEY_CONTACTS: Dict[str, str] = {
 def inject_global_css():
     """
     Add theme-friendly styling: no hardcoded background colors,
-    only borders, radii, slight opacity, so it works in light & dark.
+    only borders, opacity, subtle effects so it works in light & dark.
     """
     st.markdown(
         """
@@ -165,9 +165,13 @@ def inject_global_css():
         }
 
         /* Checklist row hover effect */
-        .checklist-row:hover {
-            background-color: rgba(148, 163, 184, 0.10);
+        .checklist-row {
+            padding: 0.15rem 0.3rem;
             border-radius: 0.4rem;
+            transition: background-color 120ms ease;
+        }
+        .checklist-row:hover {
+            background-color: rgba(148, 163, 184, 0.12);
         }
         </style>
         """,
@@ -681,7 +685,11 @@ elif page == "Checklist":
 
                 for _, row in phase_tasks.iterrows():
                     idx = int(row['idx'])
-                    c1, c2, c3 = st.columns([0.05, 0.6, 0.35])
+
+                    # Fancier row with hover and category hint
+                    st.markdown('<div class="checklist-row">', unsafe_allow_html=True)
+
+                    c1, c2, c3 = st.columns([0.06, 0.58, 0.36])
                     with c1:
                         st.checkbox(
                             "Done",
@@ -692,13 +700,16 @@ elif page == "Checklist":
                             label_visibility="collapsed"
                         )
                     with c2:
-                        label = f"**{row['Task']}**"
+                        task_label = f"**{row['Task']}**"
                         if row['Status']:
-                            st.markdown(f"~~{label}~~")
+                            st.markdown(f"~~{task_label}~~")
                         else:
-                            st.markdown(label)
+                            st.markdown(task_label)
+                        st.caption(f"Category: {row['Category']}")
                     with c3:
                         st.info(f"👤 {row['Mentor']}", icon="ℹ️")
+
+                    st.markdown('</div>', unsafe_allow_html=True)
 
 # PAGE: MENTOR GUIDE
 elif page == "Mentor Guide":
@@ -756,6 +767,7 @@ elif page == "Good to Know":
         st.warning("Graphviz is not installed. The system map cannot be displayed.")
         with st.expander("How to install Graphviz"):
             st.code("pip install graphviz\n# plus OS-level graphviz package, e.g.\n# sudo apt-get install graphviz", language="bash")
+
 
 
 
