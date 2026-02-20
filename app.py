@@ -63,7 +63,7 @@ def inject_global_css():
     st.markdown(
         """
         <style>
-        /* Top Gradient Accent */
+        /* Top Gradient Accent - Stays vibrant in both modes */
         .stApp::before {
             content: "";
             position: fixed;
@@ -73,45 +73,59 @@ def inject_global_css():
             z-index: 99999;
         }
         
-        /* Metric Typography */
-        [data-testid="stMetricValue"] { font-weight: 800; font-size: 2.2rem; color: #f8fafc; }
-        [data-testid="stMetricLabel"] > div { font-size: 0.95rem; font-weight: 600; color: #94a3b8; }
+        /* Metric Typography - Uses native text variables */
+        [data-testid="stMetricValue"] { font-weight: 800; font-size: 2.2rem; color: var(--text-color); }
+        [data-testid="stMetricLabel"] > div { font-size: 0.95rem; font-weight: 600; opacity: 0.8; }
 
-        /* Premium Hero Card */
+        /* Premium Hero Card - Adapts seamlessly to Light/Dark */
         .hero-card {
             padding: 2.0rem;
             border-radius: 1rem;
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.7));
-            border: 1px solid rgba(148, 163, 184, 0.15);
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
+            background-color: var(--secondary-background-color);
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            box-shadow: 0 4px 15px -5px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
         }
-        .hero-card h1 { margin-bottom: 0.2rem; font-size: 2.5rem; background: -webkit-linear-gradient(#fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-card h1 { 
+            margin-bottom: 0.2rem; 
+            font-size: 2.5rem; 
+            color: var(--text-color); 
+        }
 
-        /* Animated Pills */
+        /* Animated Pills - Uses native primary color */
         .pill {
             display: inline-flex; align-items: center; justify-content: center;
             padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
-            border: 1px solid rgba(16, 185, 129, 0.4); background-color: rgba(16, 185, 129, 0.1); color: #34d399;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); transition: all 0.3s ease;
+            border: 1px solid var(--primary-color); 
+            background-color: transparent; 
+            color: var(--primary-color);
         }
 
         .muted { opacity: 0.85; font-size: 1.0rem; line-height: 1.6; }
         
-        /* Interactive Task Row */
+        /* Interactive Task Row - Auto-adjusts background */
         .checklist-row {
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
             border-left: 3px solid transparent;
-            background-color: rgba(255, 255, 255, 0.02);
+            background-color: var(--secondary-background-color);
             margin-bottom: 0.5rem;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .checklist-row:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-            border-left: 3px solid #3b82f6;
+            border-left: 3px solid var(--primary-color);
             transform: translateX(4px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Adaptive Mentor Badge */
+        .mentor-badge {
+            background-color: rgba(128, 128, 128, 0.15);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--text-color);
+            border: 1px solid rgba(128, 128, 128, 0.2);
         }
         </style>
         """,
@@ -119,17 +133,18 @@ def inject_global_css():
     )
 
 def create_donut_chart(progress: float):
-    """Creates a sleek, animated donut chart for progress visualization."""
+    """Creates a sleek, animated donut chart that looks good in light and dark mode."""
     progress_pct = round(progress * 100)
     source = pd.DataFrame({
         "Category": ["Completed", "Remaining"],
         "Value": [progress_pct, 100 - progress_pct]
     })
     
+    # Using rgba with transparency for the "Remaining" track makes it look native in any theme
     chart = alt.Chart(source).mark_arc(innerRadius=60, cornerRadius=15).encode(
         theta=alt.Theta(field="Value", type="quantitative"),
         color=alt.Color(field="Category", type="nominal",
-                        scale=alt.Scale(domain=["Completed", "Remaining"], range=["#3b82f6", "#1e293b"]),
+                        scale=alt.Scale(domain=["Completed", "Remaining"], range=["#3b82f6", "rgba(128, 128, 128, 0.15)"]),
                         legend=None),
         tooltip=['Category', 'Value']
     ).properties(width=220, height=220)
@@ -171,17 +186,14 @@ def reset_user() -> None:
 # --- INSTANT SYNC & GAMIFICATION CALLBACKS ---
 def toggle_status(index: int) -> None:
     st.session_state['curriculum'][index]['Status'] = not st.session_state['curriculum'][index]['Status']
-    # Gamification Toast
     if st.session_state['curriculum'][index]['Status']:
         task_name = st.session_state['curriculum'][index]['Task']
         st.toast(f"Boom! '{task_name}' is done. Great job! 🎉", icon="🔥")
 
 def nav_click_callback(section: str, course: str) -> None:
-    """Updates the navigator status before the rest of the page reruns"""
     key = navigator_course_key(section, course)
     is_done = st.session_state[f"nav_{key}"]
     st.session_state['navigator_status'][key] = is_done
-    # Gamification Toast
     if is_done:
         st.toast(f"Knowledge leveled up! Completed '{course}'. 🧠", icon="🚀")
 
@@ -196,21 +208,21 @@ def get_tech_stack_graph(role_key: str):
         graph.node('SAP', 'SAP Service Module', shape='ellipse', fillcolor='#fef08a', color='#ca8a04')
         graph.node('MOM', 'MOM App (Mobile)', fillcolor='#bbf7d0', color='#16a34a')
         graph.node('KOLA', 'KOLA (Parts DB)', shape='cylinder', fillcolor='#e9d5ff', color='#9333ea')
-        graph.edge('C', 'SF', label='Ticket Created', fontcolor='#94a3b8')
-        graph.edge('SF', 'SAP', label='Job Dispatch', fontcolor='#94a3b8')
-        graph.edge('SAP', 'MOM', label='Work Order Sync', fontcolor='#94a3b8')
-        graph.edge('MOM', 'KOLA', label='Lookup Parts', fontcolor='#94a3b8')
-        graph.edge('MOM', 'SAP', label='Submit Timesheet', fontcolor='#94a3b8')
+        graph.edge('C', 'SF', label='Ticket Created')
+        graph.edge('SF', 'SAP', label='Job Dispatch')
+        graph.edge('SAP', 'MOM', label='Work Order Sync')
+        graph.edge('MOM', 'KOLA', label='Lookup Parts')
+        graph.edge('MOM', 'SAP', label='Submit Timesheet')
     else:
         graph.node('V', 'Vendor / Supplier', fillcolor='#bae6fd', color='#0284c7')
         graph.node('SAP', 'SAP GUI (ERP)', shape='ellipse', fillcolor='#fef08a', color='#ca8a04')
         graph.node('PLM', 'Agile PLM', shape='ellipse', fillcolor='#e9d5ff', color='#9333ea')
         graph.node('CAD', 'Creo / Vault', fillcolor='#bbf7d0', color='#16a34a')
         graph.node('GLOPPS', 'GLOPPS (Logistics)', shape='cylinder', fillcolor='#fecdd3', color='#e11d48')
-        graph.edge('V', 'SAP', label='Invoices', fontcolor='#94a3b8')
-        graph.edge('SAP', 'GLOPPS', label='Inventory Check', fontcolor='#94a3b8')
-        graph.edge('PLM', 'SAP', label='Part Number Gen', fontcolor='#94a3b8')
-        graph.edge('CAD', 'PLM', label='Drawings Upload', fontcolor='#94a3b8')
+        graph.edge('V', 'SAP', label='Invoices')
+        graph.edge('SAP', 'GLOPPS', label='Inventory Check')
+        graph.edge('PLM', 'SAP', label='Part Number Gen')
+        graph.edge('CAD', 'PLM', label='Drawings Upload')
     return graph
 
 def navigator_course_key(section: str, course: str) -> str: return f"{section}::{course}"
@@ -419,7 +431,7 @@ elif page == "Checklist":
                         st.markdown(task_text)
                         st.caption(f"Category: {row['Category']}")
                     with c3:
-                        st.markdown(f"<div style='text-align:right;'><span style='background:#1e293b;padding:4px 8px;border-radius:4px;font-size:0.8rem;'>👤 {row['Mentor']}</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='text-align:right;'><span class='mentor-badge'>👤 {row['Mentor']}</span></div>", unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
 # PAGE: MENTOR GUIDE
