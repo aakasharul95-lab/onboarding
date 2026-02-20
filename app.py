@@ -4,7 +4,6 @@ import altair as alt
 from typing import List, Tuple, Dict
 
 # --- CONFIGURATION ---
-# UPDATED: Title and Icon to reflect SPAE (Service & Spare Parts)
 st.set_page_config(page_title="SPAE Onboarding Hub", layout="wide", page_icon="⚙️", initial_sidebar_state="expanded")
 
 # --- 0. LIBRARY CHECK (CRASH GUARD) ---
@@ -60,8 +59,8 @@ KEY_CONTACTS: Dict[str, str] = {
 
 # Images for Service and Spare Parts
 THEME_IMAGES = {
-    "SPE": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80", # Gears/Logistics
-    "SE": "https://images.unsplash.com/photo-1581092335397-9583eb92d232?auto=format&fit=crop&w=600&q=80" # Field Engineer
+    "SPE": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80",
+    "SE": "https://images.unsplash.com/photo-1581092335397-9583eb92d232?auto=format&fit=crop&w=600&q=80"
 }
 
 # --- 2. HELPER FUNCTIONS & ADVANCED UI STYLING ---
@@ -128,12 +127,14 @@ def inject_global_css():
         
         /* Interactive Task Row */
         .checklist-row {
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 1rem;
             border-radius: 0.5rem;
             border-left: 3px solid transparent;
             background-color: var(--secondary-background-color);
             margin-bottom: 0.5rem;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
         }
         .checklist-row:hover {
             border-left: 3px solid var(--primary-color);
@@ -222,7 +223,6 @@ def get_xp_and_level() -> Tuple[int, int, str]:
     elif xp < max_xp:
         level_name = "Process Pro 🧠"
     else:
-        # UPDATED: Renamed AMT Champion to SPAE Champion
         level_name = "SPAE Champion 🏆"
         
     return xp, max_xp, level_name
@@ -247,7 +247,7 @@ def get_tech_stack_graph(role_key: str):
     graph.attr(rankdir='LR', bgcolor='transparent')
     graph.attr('node', shape='box', style='filled', fontname='Helvetica, sans-serif', rx='5', ry='5')
     
-    # FIX: Make the arrows and text light gray so they are visible in dark mode
+    # Make the arrows and text light gray so they are visible in dark mode
     graph.attr('edge', color='#cbd5e1', fontcolor='#cbd5e1', fontname='Helvetica, sans-serif', fontsize='10')
 
     if role_key == "SE":
@@ -308,8 +308,6 @@ inject_global_css()
 
 # --- 4. SIDEBAR ---
 with st.sidebar:
-    # Modern, theme-adaptive logo block
-    # UPDATED: Changed icon to ⚙️ and title to SPAE Hub
     st.markdown(
         """
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px; margin-top: -10px;">
@@ -392,7 +390,6 @@ if page == "Dashboard":
 
     if overall_percent == 100:
         st.balloons()
-        # UPDATED: Renamed AMT Champion to SPAE Champion
         st.success("🎉 Incredible work! You are now a SPAE Champion.")
 
     st.markdown("### 🎯 Action Center")
@@ -434,9 +431,12 @@ elif page == "Requests & Learning":
         with col2:
             with st.container(border=True):
                 st.subheader(f"🛠 {role_key} Systems")
-                # UPDATED: Added themed image for the role
-                st.image(THEME_IMAGES[role_key], use_column_width=True)
-                for item in FAROS_CATALOG[role_key]: st.markdown(f"🔹 **{item}**")
+                # NEW: Layout constrained image column to fix oversized images
+                img_col, text_col = st.columns([1.2, 3])
+                with img_col:
+                    st.image(THEME_IMAGES[role_key], use_container_width=True)
+                with text_col:
+                    for item in FAROS_CATALOG[role_key]: st.markdown(f"🔹 **{item}**")
 
     with tab2:
         completed_nav, total_nav = get_navigator_progress()
@@ -459,9 +459,12 @@ elif page == "Requests & Learning":
     with tab3:
         with st.container(border=True):
             st.subheader("🔗 Essential Tools")
-            # UPDATED: Added themed image for the role toolkit
-            st.image(THEME_IMAGES[role_key], use_column_width=True)
-            for item in TOOLKIT["Common"] + TOOLKIT[role_key]: st.markdown(f"- {item}")
+            # NEW: Layout constrained image column to fix oversized images
+            img_col, text_col = st.columns([1, 4])
+            with img_col:
+                st.image(THEME_IMAGES[role_key], use_container_width=True)
+            with text_col:
+                for item in TOOLKIT["Common"] + TOOLKIT[role_key]: st.markdown(f"- {item}")
 
 # PAGE: CHECKLIST
 elif page == "Checklist":
@@ -488,7 +491,10 @@ elif page == "Checklist":
                 for _, row in phase_tasks.iterrows():
                     idx = int(row['idx'])
                     st.markdown('<div class="checklist-row">', unsafe_allow_html=True)
-                    c1, c2, c3 = st.columns([0.05, 0.65, 0.30])
+                    
+                    # FIX: Using integer ratio columns to prevent huge gaps in wide-mode screens
+                    c1, c2, c3 = st.columns([1, 14, 4])
+                    
                     with c1:
                         st.checkbox("Done", value=row['Status'], key=f"chk_{idx}", on_change=toggle_status, args=(idx,), label_visibility="collapsed")
                     with c2:
@@ -496,7 +502,7 @@ elif page == "Checklist":
                         st.markdown(task_text)
                         st.caption(f"Category: {row['Category']}")
                     with c3:
-                        st.markdown(f"<div style='text-align:right;'><span class='mentor-badge'>👤 {row['Mentor']}</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='text-align:right; margin-top: 5px;'><span class='mentor-badge'>👤 {row['Mentor']}</span></div>", unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
 # PAGE: MENTOR GUIDE
