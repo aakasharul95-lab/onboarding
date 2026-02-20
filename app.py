@@ -63,47 +63,58 @@ def inject_global_css():
     st.markdown(
         """
         <style>
-        /* Top Gradient Accent - Stays vibrant in both modes */
+        /* Import Premium Font */
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        /* Apply Font Globally */
+        html, body, [class*="css"], [class*="st-"] {
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+        }
+
+        /* Top Gradient Accent */
         .stApp::before {
             content: "";
             position: fixed;
             top: 0; left: 0; right: 0;
-            height: 4px;
+            height: 5px;
             background: linear-gradient(90deg, #4f46e5, #0ea5e9, #10b981);
             z-index: 99999;
         }
         
-        /* Metric Typography - Uses native text variables */
+        /* Metric Typography */
         [data-testid="stMetricValue"] { font-weight: 800; font-size: 2.2rem; color: var(--text-color); }
         [data-testid="stMetricLabel"] > div { font-size: 0.95rem; font-weight: 600; opacity: 0.8; }
 
-        /* Premium Hero Card - Adapts seamlessly to Light/Dark */
+        /* Premium Hero Card */
         .hero-card {
             padding: 2.0rem;
             border-radius: 1rem;
             background-color: var(--secondary-background-color);
             border: 1px solid rgba(128, 128, 128, 0.2);
-            box-shadow: 0 4px 15px -5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 24px -5px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
         }
         .hero-card h1 { 
             margin-bottom: 0.2rem; 
             font-size: 2.5rem; 
+            font-weight: 800;
             color: var(--text-color); 
+            letter-spacing: -0.5px;
         }
 
-        /* Animated Pills - Uses native primary color */
+        /* Animated Level Pill */
         .pill {
             display: inline-flex; align-items: center; justify-content: center;
-            padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+            padding: 0.4rem 1rem; border-radius: 999px; font-size: 0.85rem; font-weight: 700;
             border: 1px solid var(--primary-color); 
-            background-color: transparent; 
+            background: linear-gradient(90deg, rgba(79, 70, 229, 0.1), rgba(16, 185, 129, 0.1));
             color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
         }
 
-        .muted { opacity: 0.85; font-size: 1.0rem; line-height: 1.6; }
+        .muted { opacity: 0.85; font-size: 1.05rem; line-height: 1.6; }
         
-        /* Interactive Task Row - Auto-adjusts background */
+        /* Interactive Task Row */
         .checklist-row {
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
@@ -122,10 +133,10 @@ def inject_global_css():
         .mentor-badge {
             background-color: rgba(128, 128, 128, 0.15);
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 0.8rem;
+            font-weight: 600;
             color: var(--text-color);
-            border: 1px solid rgba(128, 128, 128, 0.2);
         }
         </style>
         """,
@@ -133,14 +144,13 @@ def inject_global_css():
     )
 
 def create_donut_chart(progress: float):
-    """Creates a sleek, animated donut chart that looks good in light and dark mode."""
+    """Creates a sleek, animated donut chart for progress visualization."""
     progress_pct = round(progress * 100)
     source = pd.DataFrame({
         "Category": ["Completed", "Remaining"],
         "Value": [progress_pct, 100 - progress_pct]
     })
     
-    # Using rgba with transparency for the "Remaining" track makes it look native in any theme
     chart = alt.Chart(source).mark_arc(innerRadius=60, cornerRadius=15).encode(
         theta=alt.Theta(field="Value", type="quantitative"),
         color=alt.Color(field="Category", type="nominal",
@@ -183,19 +193,42 @@ def reset_user() -> None:
     st.session_state['curriculum'] = [{**t, "Status": False} for t in raw_data]
     init_navigator_status()
 
-# --- INSTANT SYNC & GAMIFICATION CALLBACKS ---
+# --- GAMIFICATION LOGIC ---
+def get_xp_and_level() -> Tuple[int, int, str]:
+    """Calculates user XP and returns an encouraging, positive rank."""
+    df = pd.DataFrame(st.session_state['curriculum'])
+    checklist_done = df['Status'].sum() if not df.empty else 0
+    nav_done, nav_total = get_navigator_progress()
+    
+    xp = int((checklist_done * 20) + (nav_done * 50))
+    max_xp = int((len(df) * 20) + (nav_total * 50)) if not df.empty else 100
+    
+    if xp == 0:
+        level_name = "Welcome Aboard 👋"
+    elif xp < max_xp * 0.4:
+        level_name = "Rising Star ⭐"
+    elif xp < max_xp * 0.8:
+        level_name = "Momentum Builder 🚀"
+    elif xp < max_xp:
+        level_name = "Process Pro 🧠"
+    else:
+        level_name = "AMT Champion 🏆"
+        
+    return xp, max_xp, level_name
+
+# --- INSTANT SYNC CALLBACKS ---
 def toggle_status(index: int) -> None:
     st.session_state['curriculum'][index]['Status'] = not st.session_state['curriculum'][index]['Status']
     if st.session_state['curriculum'][index]['Status']:
         task_name = st.session_state['curriculum'][index]['Task']
-        st.toast(f"Boom! '{task_name}' is done. Great job! 🎉", icon="🔥")
+        st.toast(f"Boom! '{task_name}' is done. +20 XP! 🎉", icon="🔥")
 
 def nav_click_callback(section: str, course: str) -> None:
     key = navigator_course_key(section, course)
     is_done = st.session_state[f"nav_{key}"]
     st.session_state['navigator_status'][key] = is_done
     if is_done:
-        st.toast(f"Knowledge leveled up! Completed '{course}'. 🧠", icon="🚀")
+        st.toast(f"Knowledge leveled up! Completed '{course}'. +50 XP! 🧠", icon="🌟")
 
 def get_tech_stack_graph(role_key: str):
     if not has_graphviz: return None
@@ -257,7 +290,7 @@ inject_global_css()
 
 # --- 4. SIDEBAR ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3214/3214011.png", width=60) # Sleek icon
+    st.image("https://cdn-icons-png.flaticon.com/512/3214/3214011.png", width=60)
     st.title("AMT Hub")
     
     selected_role = st.selectbox("Current Role", list(ROLE_KEY_MAP.keys()), index=list(ROLE_KEY_MAP.keys()).index(st.session_state['user_role']))
@@ -270,7 +303,6 @@ with st.sidebar:
     page = st.radio("Navigation", ["Dashboard", "Requests & Learning", "Checklist", "Mentor Guide", "Good to Know"], label_visibility="collapsed")
     st.markdown("---")
 
-    # Modern Popovers instead of Expanders
     with st.popover("🆘 Directory & Help", use_container_width=True):
         st.markdown("**Emergency & Support Contacts**")
         for dept, contact in KEY_CONTACTS.items():
@@ -298,10 +330,12 @@ role_label = st.session_state['user_role'].split("(")[0].strip()
 
 # PAGE: DASHBOARD
 if page == "Dashboard":
+    xp, max_xp, level_name = get_xp_and_level()
+    
     st.markdown(
         f"""
         <div class="hero-card">
-            <span class="pill">⚡ AMT Onboarding</span>
+            <span class="pill">{level_name} • {xp} / {max_xp} XP</span>
             <h1>Welcome to the team, {role_label} 👋</h1>
             <p class="muted">Your personalized command center for mastering the {role_key} role. Track your gear, request access, and complete your training all in one place.</p>
         </div>
@@ -313,7 +347,6 @@ if page == "Dashboard":
     nav_done, nav_total = get_navigator_progress()
     df = pd.DataFrame(st.session_state['curriculum'])
 
-    # KPI Layout
     kpi1, kpi2, kpi3, chart_col = st.columns([1, 1, 1, 1.2])
     
     with kpi1:
@@ -330,7 +363,7 @@ if page == "Dashboard":
 
     if overall_percent == 100:
         st.balloons()
-        st.success("🎉 Incredible work! You have completed all onboarding requirements.")
+        st.success("🎉 Incredible work! You are now an AMT Champion.")
 
     st.markdown("### 🎯 Action Center")
     colA, colB = st.columns(2)
@@ -357,7 +390,7 @@ if page == "Dashboard":
 # PAGE: REQUESTS & LEARNING
 elif page == "Requests & Learning":
     st.markdown("## 📚 Requests & Learning")
-    st.markdown("Manage your system access and required certifications.")
+    st.markdown("Manage your system access and required certifications to earn more XP.")
 
     tab1, tab2, tab3 = st.tabs(["🔐 FAROS Access", "🎓 Navigator Hub", "🧰 Toolkit"])
 
@@ -380,13 +413,13 @@ elif page == "Requests & Learning":
         c1, c2 = st.columns(2)
         with c1:
             with st.container(border=True):
-                st.subheader("🚨 Mandatory Training")
+                st.subheader("🚨 Mandatory Training (50 XP ea)")
                 for course in NAVIGATOR_COURSES["Mandatory"]:
                     key = navigator_course_key("Mandatory", course)
                     st.checkbox(course, value=st.session_state['navigator_status'].get(key, False), key=f"nav_{key}", on_change=nav_click_callback, args=("Mandatory", course))
         with c2:
             with st.container(border=True):
-                st.subheader(f"🧠 {role_key} Specific")
+                st.subheader(f"🧠 {role_key} Specific (50 XP ea)")
                 for course in NAVIGATOR_COURSES[role_key]:
                     key = navigator_course_key(role_key, course)
                     st.checkbox(course, value=st.session_state['navigator_status'].get(key, False), key=f"nav_{key}", on_change=nav_click_callback, args=(role_key, course))
@@ -402,7 +435,6 @@ elif page == "Checklist":
     df = pd.DataFrame(st.session_state['curriculum'])
     df['idx'] = df.index
 
-    # Advanced Search Filter
     search_query = st.text_input("🔍 Filter tasks by keyword...", "").lower()
 
     if not df.empty:
@@ -410,10 +442,9 @@ elif page == "Checklist":
         for phase in unique_phases:
             phase_tasks = df[df['Phase'] == phase]
             
-            # Apply search filter
             if search_query:
                 phase_tasks = phase_tasks[phase_tasks['Task'].str.lower().str.contains(search_query) | phase_tasks['Category'].str.lower().str.contains(search_query)]
-                if phase_tasks.empty: continue # Skip rendering phase if no matches
+                if phase_tasks.empty: continue
             
             done = int(phase_tasks['Status'].sum())
             total = len(phase_tasks)
