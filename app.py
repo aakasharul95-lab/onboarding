@@ -66,9 +66,14 @@ def inject_global_css():
         /* Import Premium Font */
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-        /* Apply Font Globally */
-        html, body, [class*="css"], [class*="st-"] {
-            font-family: 'Plus Jakarta Sans', sans-serif !important;
+        /* Safely apply the font to text elements without overriding Streamlit's Material Icons */
+        html, body, p, div, h1, h2, h3, h4, h5, h6, li, span, label, a {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        /* Explicitly protect the icon fonts so "expand_more" renders as an arrow again */
+        .material-symbols-rounded, .material-icons {
+            font-family: 'Material Symbols Rounded' !important;
         }
 
         /* Top Gradient Accent */
@@ -144,7 +149,6 @@ def inject_global_css():
     )
 
 def create_donut_chart(progress: float):
-    """Creates a sleek, animated donut chart for progress visualization."""
     progress_pct = round(progress * 100)
     source = pd.DataFrame({
         "Category": ["Completed", "Remaining"],
@@ -195,7 +199,6 @@ def reset_user() -> None:
 
 # --- GAMIFICATION LOGIC ---
 def get_xp_and_level() -> Tuple[int, int, str]:
-    """Calculates user XP and returns an encouraging, positive rank."""
     df = pd.DataFrame(st.session_state['curriculum'])
     checklist_done = df['Status'].sum() if not df.empty else 0
     nav_done, nav_total = get_navigator_progress()
