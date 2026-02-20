@@ -71,7 +71,7 @@ def inject_global_css():
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
         
-        /* Explicitly protect the icon fonts so "expand_more" renders as an arrow again */
+        /* Explicitly protect the icon fonts so arrows render correctly */
         .material-symbols-rounded, .material-icons {
             font-family: 'Material Symbols Rounded' !important;
         }
@@ -238,27 +238,34 @@ def get_tech_stack_graph(role_key: str):
     graph = graphviz.Digraph()
     graph.attr(rankdir='LR', bgcolor='transparent')
     graph.attr('node', shape='box', style='filled', fontname='Helvetica, sans-serif', rx='5', ry='5')
+    
+    # FIX: Make the arrows and text light gray so they are visible in dark mode
+    graph.attr('edge', color='#cbd5e1', fontcolor='#cbd5e1', fontname='Helvetica, sans-serif', fontsize='10')
+
     if role_key == "SE":
         graph.node('C', 'Customer Site', fillcolor='#bae6fd', color='#0284c7')
         graph.node('SF', 'Salesforce (CRM)', shape='ellipse', fillcolor='#fef08a', color='#ca8a04')
         graph.node('SAP', 'SAP Service Module', shape='ellipse', fillcolor='#fef08a', color='#ca8a04')
         graph.node('MOM', 'MOM App (Mobile)', fillcolor='#bbf7d0', color='#16a34a')
         graph.node('KOLA', 'KOLA (Parts DB)', shape='cylinder', fillcolor='#e9d5ff', color='#9333ea')
-        graph.edge('C', 'SF', label='Ticket Created')
-        graph.edge('SF', 'SAP', label='Job Dispatch')
-        graph.edge('SAP', 'MOM', label='Work Order Sync')
-        graph.edge('MOM', 'KOLA', label='Lookup Parts')
-        graph.edge('MOM', 'SAP', label='Submit Timesheet')
+        
+        graph.edge('C', 'SF', label=' Ticket Created')
+        graph.edge('SF', 'SAP', label=' Job Dispatch')
+        graph.edge('SAP', 'MOM', label=' Work Order Sync')
+        graph.edge('MOM', 'KOLA', label=' Lookup Parts')
+        graph.edge('MOM', 'SAP', label=' Submit Timesheet')
     else:
         graph.node('V', 'Vendor / Supplier', fillcolor='#bae6fd', color='#0284c7')
         graph.node('SAP', 'SAP GUI (ERP)', shape='ellipse', fillcolor='#fef08a', color='#ca8a04')
         graph.node('PLM', 'Agile PLM', shape='ellipse', fillcolor='#e9d5ff', color='#9333ea')
         graph.node('CAD', 'Creo / Vault', fillcolor='#bbf7d0', color='#16a34a')
         graph.node('GLOPPS', 'GLOPPS (Logistics)', shape='cylinder', fillcolor='#fecdd3', color='#e11d48')
-        graph.edge('V', 'SAP', label='Invoices')
-        graph.edge('SAP', 'GLOPPS', label='Inventory Check')
-        graph.edge('PLM', 'SAP', label='Part Number Gen')
-        graph.edge('CAD', 'PLM', label='Drawings Upload')
+        
+        graph.edge('V', 'SAP', label=' Invoices')
+        graph.edge('SAP', 'GLOPPS', label=' Inventory Check')
+        graph.edge('PLM', 'SAP', label=' Part Number Gen')
+        graph.edge('CAD', 'PLM', label=' Drawings Upload')
+        
     return graph
 
 def navigator_course_key(section: str, course: str) -> str: return f"{section}::{course}"
