@@ -4,7 +4,8 @@ import altair as alt
 from typing import List, Tuple, Dict
 
 # --- CONFIGURATION ---
-st.set_page_config(page_title="AMT Onboarding Hub", layout="wide", page_icon="🚀", initial_sidebar_state="expanded")
+# UPDATED: Title and Icon to reflect SPAE (Service & Spare Parts)
+st.set_page_config(page_title="SPAE Onboarding Hub", layout="wide", page_icon="⚙️", initial_sidebar_state="expanded")
 
 # --- 0. LIBRARY CHECK (CRASH GUARD) ---
 try:
@@ -55,6 +56,12 @@ ACRONYMS: Dict[str, str] = {
 
 KEY_CONTACTS: Dict[str, str] = {
     "IT Helpdesk": "Ext. 4040", "HR Onboarding": "Ext. 2000", "Safety Officer": "Ext. 9110"
+}
+
+# Images for Service and Spare Parts
+THEME_IMAGES = {
+    "SPE": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80", # Gears/Logistics
+    "SE": "https://images.unsplash.com/photo-1581092335397-9583eb92d232?auto=format&fit=crop&w=600&q=80" # Field Engineer
 }
 
 # --- 2. HELPER FUNCTIONS & ADVANCED UI STYLING ---
@@ -215,7 +222,8 @@ def get_xp_and_level() -> Tuple[int, int, str]:
     elif xp < max_xp:
         level_name = "Process Pro 🧠"
     else:
-        level_name = "AMT Champion 🏆"
+        # UPDATED: Renamed AMT Champion to SPAE Champion
+        level_name = "SPAE Champion 🏆"
         
     return xp, max_xp, level_name
 
@@ -301,13 +309,14 @@ inject_global_css()
 # --- 4. SIDEBAR ---
 with st.sidebar:
     # Modern, theme-adaptive logo block
+    # UPDATED: Changed icon to ⚙️ and title to SPAE Hub
     st.markdown(
         """
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px; margin-top: -10px;">
             <div style="background: linear-gradient(135deg, #4f46e5, #0ea5e9); padding: 10px; border-radius: 12px; color: white; font-size: 22px; line-height: 1; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);">
-                ⚡
+                ⚙️
             </div>
-            <h1 style="margin: 0; padding: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-color);">AMT Hub</h1>
+            <h1 style="margin: 0; padding: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-color);">SPAE Hub</h1>
         </div>
         """, 
         unsafe_allow_html=True
@@ -383,7 +392,8 @@ if page == "Dashboard":
 
     if overall_percent == 100:
         st.balloons()
-        st.success("🎉 Incredible work! You are now an AMT Champion.")
+        # UPDATED: Renamed AMT Champion to SPAE Champion
+        st.success("🎉 Incredible work! You are now a SPAE Champion.")
 
     st.markdown("### 🎯 Action Center")
     colA, colB = st.columns(2)
@@ -424,6 +434,8 @@ elif page == "Requests & Learning":
         with col2:
             with st.container(border=True):
                 st.subheader(f"🛠 {role_key} Systems")
+                # UPDATED: Added themed image for the role
+                st.image(THEME_IMAGES[role_key], use_column_width=True)
                 for item in FAROS_CATALOG[role_key]: st.markdown(f"🔹 **{item}**")
 
     with tab2:
@@ -447,6 +459,8 @@ elif page == "Requests & Learning":
     with tab3:
         with st.container(border=True):
             st.subheader("🔗 Essential Tools")
+            # UPDATED: Added themed image for the role toolkit
+            st.image(THEME_IMAGES[role_key], use_column_width=True)
             for item in TOOLKIT["Common"] + TOOLKIT[role_key]: st.markdown(f"- {item}")
 
 # PAGE: CHECKLIST
