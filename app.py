@@ -300,8 +300,18 @@ inject_global_css()
 
 # --- 4. SIDEBAR ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3214/3214011.png", width=60)
-    st.title("AMT Hub")
+    # Modern, theme-adaptive logo block
+    st.markdown(
+        """
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px; margin-top: -10px;">
+            <div style="background: linear-gradient(135deg, #4f46e5, #0ea5e9); padding: 10px; border-radius: 12px; color: white; font-size: 22px; line-height: 1; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);">
+                ⚡
+            </div>
+            <h1 style="margin: 0; padding: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-color);">AMT Hub</h1>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
     
     selected_role = st.selectbox("Current Role", list(ROLE_KEY_MAP.keys()), index=list(ROLE_KEY_MAP.keys()).index(st.session_state['user_role']))
     if selected_role != st.session_state['user_role']:
