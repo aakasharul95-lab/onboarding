@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from typing import List, Tuple, Dict
+import anthropic
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="SPAE Onboarding Hub", layout="wide", page_icon="⚙️", initial_sidebar_state="expanded")
@@ -57,11 +58,69 @@ KEY_CONTACTS: Dict[str, str] = {
     "IT Helpdesk": "Ext. 4040", "HR Onboarding": "Ext. 2000", "Safety Officer": "Ext. 9110"
 }
 
-# Images for Service and Spare Parts
 THEME_IMAGES = {
     "SPE": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80",
     "SE": "https://images.unsplash.com/photo-1581092335397-9583eb92d232?auto=format&fit=crop&w=600&q=80"
 }
+
+# --- AI CHATBOT SYSTEM PROMPT ---
+def build_chatbot_system_prompt(role_key: str, role_label: str) -> str:
+    faros_common = "\n".join(f"- {x}" for x in FAROS_CATALOG["Common"])
+    faros_role = "\n".join(f"- {x}" for x in FAROS_CATALOG[role_key])
+    nav_mandatory = "\n".join(f"- {x}" for x in NAVIGATOR_COURSES["Mandatory"])
+    nav_role = "\n".join(f"- {x}" for x in NAVIGATOR_COURSES[role_key])
+    toolkit = "\n".join(f"- {x}" for x in TOOLKIT["Common"] + TOOLKIT[role_key])
+    acronyms = "\n".join(f"- {k}: {v}" for k, v in ACRONYMS.items())
+    contacts = "\n".join(f"- {k}: {v}" for k, v in KEY_CONTACTS.items())
+    links = "\n".join(f"- {k}: {v}" for k, v in IMPORTANT_LINKS.items())
+
+    return f"""You are SPAE Buddy, a friendly and knowledgeable onboarding assistant for new {role_label} ({role_key}) employees at SPAE.
+
+Your job is to help new hires navigate their onboarding smoothly. You are warm, concise, and encouraging. You answer questions about:
+- System access (FAROS portal requests)
+- Training courses (Navigator platform)
+- Tools and internal portals
+- Acronyms and jargon
+- Contacts and support
+- General onboarding advice
+
+## Role
+The employee's role is: {role_label} ({role_key})
+
+## Systems to Request Access To (via FAROS portal)
+Common systems for everyone:
+{faros_common}
+
+{role_key}-specific systems:
+{faros_role}
+
+## Training Courses (Navigator platform)
+Mandatory for all:
+{nav_mandatory}
+
+{role_key}-specific:
+{nav_role}
+
+## Toolkit
+{toolkit}
+
+## Acronyms & Jargon
+{acronyms}
+
+## Key Contacts
+{contacts}
+
+## Important Links
+{links}
+
+## Guidelines
+- Keep responses concise and friendly (2-4 sentences unless more detail is needed).
+- If asked about something outside your knowledge, say so and suggest contacting HR or IT Helpdesk.
+- Never make up system names, contacts, or links — only use the data above.
+- Use bullet points for lists, but keep prose answers short and direct.
+- Address the employee encouragingly — they're new and finding their feet!
+"""
+
 
 # --- 2. HELPER FUNCTIONS & ADVANCED UI STYLING ---
 
@@ -69,20 +128,16 @@ def inject_global_css():
     st.markdown(
         """
         <style>
-        /* Import Premium Font */
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-        /* Safely apply the font to text elements without overriding Streamlit's Material Icons */
         html, body, p, div, h1, h2, h3, h4, h5, h6, li, span, label, a {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
         
-        /* Explicitly protect the icon fonts so arrows render correctly */
         .material-symbols-rounded, .material-icons {
             font-family: 'Material Symbols Rounded' !important;
         }
 
-        /* Top Gradient Accent */
         .stApp::before {
             content: "";
             position: fixed;
@@ -92,11 +147,9 @@ def inject_global_css():
             z-index: 99999;
         }
         
-        /* Metric Typography */
         [data-testid="stMetricValue"] { font-weight: 800; font-size: 2.2rem; color: var(--text-color); }
         [data-testid="stMetricLabel"] > div { font-size: 0.95rem; font-weight: 600; opacity: 0.8; }
 
-        /* Premium Hero Card */
         .hero-card {
             padding: 2.0rem;
             border-radius: 1rem;
@@ -113,7 +166,6 @@ def inject_global_css():
             letter-spacing: -0.5px;
         }
 
-        /* Animated Level Pill */
         .pill {
             display: inline-flex; align-items: center; justify-content: center;
             padding: 0.4rem 1rem; border-radius: 999px; font-size: 0.85rem; font-weight: 700;
@@ -125,7 +177,6 @@ def inject_global_css():
 
         .muted { opacity: 0.85; font-size: 1.05rem; line-height: 1.6; }
         
-        /* Interactive Task Row */
         .checklist-row {
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
@@ -142,7 +193,6 @@ def inject_global_css():
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        /* Adaptive Mentor Badge */
         .mentor-badge {
             background-color: rgba(128, 128, 128, 0.15);
             padding: 4px 8px;
@@ -150,6 +200,28 @@ def inject_global_css():
             font-size: 0.8rem;
             font-weight: 600;
             color: var(--text-color);
+        }
+
+        /* Chat bubble styles */
+        .chat-user {
+            background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+            color: white;
+            padding: 0.6rem 0.9rem;
+            border-radius: 1rem 1rem 0.2rem 1rem;
+            margin: 0.4rem 0;
+            font-size: 0.9rem;
+            max-width: 85%;
+            margin-left: auto;
+        }
+        .chat-assistant {
+            background-color: var(--secondary-background-color);
+            border: 1px solid rgba(128,128,128,0.2);
+            color: var(--text-color);
+            padding: 0.6rem 0.9rem;
+            border-radius: 1rem 1rem 1rem 0.2rem;
+            margin: 0.4rem 0;
+            font-size: 0.9rem;
+            max-width: 85%;
         }
         </style>
         """,
@@ -162,7 +234,6 @@ def create_donut_chart(progress: float):
         "Category": ["Completed", "Remaining"],
         "Value": [progress_pct, 100 - progress_pct]
     })
-    
     chart = alt.Chart(source).mark_arc(innerRadius=60, cornerRadius=15).encode(
         theta=alt.Theta(field="Value", type="quantitative"),
         color=alt.Color(field="Category", type="nominal",
@@ -204,30 +275,21 @@ def reset_user() -> None:
     raw_data = get_checklist_data(st.session_state['user_role'])
     st.session_state['curriculum'] = [{**t, "Status": False} for t in raw_data]
     init_navigator_status()
+    st.session_state['chat_history'] = []
 
-# --- GAMIFICATION LOGIC ---
 def get_xp_and_level() -> Tuple[int, int, str]:
     df = pd.DataFrame(st.session_state['curriculum'])
     checklist_done = df['Status'].sum() if not df.empty else 0
     nav_done, nav_total = get_navigator_progress()
-    
     xp = int((checklist_done * 20) + (nav_done * 50))
     max_xp = int((len(df) * 20) + (nav_total * 50)) if not df.empty else 100
-    
-    if xp == 0:
-        level_name = "Welcome Aboard 👋"
-    elif xp < max_xp * 0.4:
-        level_name = "Rising Star ⭐"
-    elif xp < max_xp * 0.8:
-        level_name = "Momentum Builder 🚀"
-    elif xp < max_xp:
-        level_name = "Process Pro 🧠"
-    else:
-        level_name = "SPAE Champion 🏆"
-        
+    if xp == 0: level_name = "Welcome Aboard 👋"
+    elif xp < max_xp * 0.4: level_name = "Rising Star ⭐"
+    elif xp < max_xp * 0.8: level_name = "Momentum Builder 🚀"
+    elif xp < max_xp: level_name = "Process Pro 🧠"
+    else: level_name = "SPAE Champion 🏆"
     return xp, max_xp, level_name
 
-# --- INSTANT SYNC CALLBACKS ---
 def toggle_status(index: int) -> None:
     st.session_state['curriculum'][index]['Status'] = not st.session_state['curriculum'][index]['Status']
     if st.session_state['curriculum'][index]['Status']:
@@ -246,17 +308,13 @@ def get_tech_stack_graph(role_key: str):
     graph = graphviz.Digraph()
     graph.attr(rankdir='LR', bgcolor='transparent')
     graph.attr('node', shape='box', style='filled', fontname='Helvetica, sans-serif', rx='5', ry='5')
-    
-    # Make the arrows and text light gray so they are visible in dark mode
     graph.attr('edge', color='#cbd5e1', fontcolor='#cbd5e1', fontname='Helvetica, sans-serif', fontsize='10')
-
     if role_key == "SE":
         graph.node('C', 'Customer Site', fillcolor='#bae6fd', color='#0284c7')
         graph.node('SF', 'Salesforce (CRM)', shape='ellipse', fillcolor='#fef08a', color='#ca8a04')
         graph.node('SAP', 'SAP Service Module', shape='ellipse', fillcolor='#fef08a', color='#ca8a04')
         graph.node('MOM', 'MOM App (Mobile)', fillcolor='#bbf7d0', color='#16a34a')
         graph.node('KOLA', 'KOLA (Parts DB)', shape='cylinder', fillcolor='#e9d5ff', color='#9333ea')
-        
         graph.edge('C', 'SF', label=' Ticket Created')
         graph.edge('SF', 'SAP', label=' Job Dispatch')
         graph.edge('SAP', 'MOM', label=' Work Order Sync')
@@ -268,12 +326,10 @@ def get_tech_stack_graph(role_key: str):
         graph.node('PLM', 'Agile PLM', shape='ellipse', fillcolor='#e9d5ff', color='#9333ea')
         graph.node('CAD', 'Creo / Vault', fillcolor='#bbf7d0', color='#16a34a')
         graph.node('GLOPPS', 'GLOPPS (Logistics)', shape='cylinder', fillcolor='#fecdd3', color='#e11d48')
-        
         graph.edge('V', 'SAP', label=' Invoices')
         graph.edge('SAP', 'GLOPPS', label=' Inventory Check')
         graph.edge('PLM', 'SAP', label=' Part Number Gen')
         graph.edge('CAD', 'PLM', label=' Drawings Upload')
-        
     return graph
 
 def navigator_course_key(section: str, course: str) -> str: return f"{section}::{course}"
@@ -299,10 +355,35 @@ def get_overall_progress() -> Tuple[float, float, float]:
     navigator_p = (nav_done / nav_total) if nav_total > 0 else 0.0
     return checklist_p, navigator_p, (0.5 * checklist_p) + (0.5 * navigator_p)
 
+# --- AI CHATBOT FUNCTION ---
+def get_ai_response(user_message: str, chat_history: list, role_key: str, role_label: str) -> str:
+    """Call Claude API with full conversation history."""
+    try:
+        client = anthropic.Anthropic()
+        system_prompt = build_chatbot_system_prompt(role_key, role_label)
+
+        # Build messages from history + new user message
+        messages = []
+        for msg in chat_history:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+        messages.append({"role": "user", "content": user_message})
+
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=512,
+            system=system_prompt,
+            messages=messages
+        )
+        return response.content[0].text
+    except Exception as e:
+        return f"⚠️ Sorry, I couldn't connect right now. Please try again or contact IT Helpdesk (Ext. 4040). \n\n_(Error: {e})_"
+
+
 # --- 3. STATE INITIALIZATION ---
 if 'user_role' not in st.session_state: st.session_state['user_role'] = "SPE (Spare Parts Engineer)"
 if 'curriculum' not in st.session_state:
     st.session_state['curriculum'] = [{**t, "Status": False} for t in get_checklist_data(st.session_state['user_role'])]
+if 'chat_history' not in st.session_state: st.session_state['chat_history'] = []
 init_navigator_status()
 inject_global_css()
 
@@ -329,6 +410,65 @@ with st.sidebar:
     st.markdown("---")
     page = st.radio("Navigation", ["Dashboard", "Requests & Learning", "Checklist", "Mentor Guide", "Good to Know"], label_visibility="collapsed")
     st.markdown("---")
+
+    # --- 🤖 AI CHATBOT POPOVER ---
+    with st.popover("🤖 Ask SPAE Buddy (AI)", use_container_width=True):
+        role_key_chat = get_role_key(st.session_state['user_role'])
+        role_label_chat = st.session_state['user_role'].split("(")[0].strip()
+
+        st.markdown(
+            f"**SPAE Buddy** 🤖  \n"
+            f"<span style='font-size:0.8rem; opacity:0.7;'>Your AI onboarding assistant for {role_key_chat}s. Ask me anything!</span>",
+            unsafe_allow_html=True
+        )
+
+        # Suggested prompts (shown when chat is empty)
+        if not st.session_state['chat_history']:
+            st.markdown("<div style='font-size:0.8rem; opacity:0.6; margin-bottom:4px;'>Try asking:</div>", unsafe_allow_html=True)
+            suggestions = [
+                f"What systems do I need to request access for?",
+                "What's LOTO?",
+                "Who do I contact for IT issues?",
+                "What training is mandatory for everyone?",
+            ]
+            for suggestion in suggestions:
+                if st.button(suggestion, key=f"suggest_{suggestion[:20]}", use_container_width=True):
+                    # Add to history and get response
+                    st.session_state['chat_history'].append({"role": "user", "content": suggestion})
+                    with st.spinner("Thinking..."):
+                        reply = get_ai_response(suggestion, st.session_state['chat_history'][:-1], role_key_chat, role_label_chat)
+                    st.session_state['chat_history'].append({"role": "assistant", "content": reply})
+                    st.rerun()
+
+        # Render chat history
+        for msg in st.session_state['chat_history']:
+            if msg["role"] == "user":
+                st.markdown(f"<div class='chat-user'>🧑 {msg['content']}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div class='chat-assistant'>🤖 {msg['content']}</div>", unsafe_allow_html=True)
+
+        # Input area
+        user_input = st.text_input(
+            "Message SPAE Buddy",
+            placeholder="e.g. What is KOLA used for?",
+            key="chat_input",
+            label_visibility="collapsed"
+        )
+
+        col_send, col_clear = st.columns([3, 1])
+        with col_send:
+            send_clicked = st.button("Send ➤", use_container_width=True, type="primary")
+        with col_clear:
+            if st.button("🗑️", use_container_width=True, help="Clear chat"):
+                st.session_state['chat_history'] = []
+                st.rerun()
+
+        if send_clicked and user_input.strip():
+            st.session_state['chat_history'].append({"role": "user", "content": user_input.strip()})
+            with st.spinner("SPAE Buddy is thinking..."):
+                reply = get_ai_response(user_input.strip(), st.session_state['chat_history'][:-1], role_key_chat, role_label_chat)
+            st.session_state['chat_history'].append({"role": "assistant", "content": reply})
+            st.rerun()
 
     with st.popover("🆘 Directory & Help", use_container_width=True):
         st.markdown("**Emergency & Support Contacts**")
@@ -375,7 +515,6 @@ if page == "Dashboard":
     df = pd.DataFrame(st.session_state['curriculum'])
 
     kpi1, kpi2, kpi3, chart_col = st.columns([1, 1, 1, 1.2])
-    
     with kpi1:
         with st.container(border=True):
             st.metric("Total Progress", f"{overall_percent}%", delta="On Track", delta_color="normal")
@@ -394,7 +533,6 @@ if page == "Dashboard":
 
     st.markdown("### 🎯 Action Center")
     colA, colB = st.columns(2)
-    
     with colA:
         with st.container(border=True):
             st.subheader("Next Checklist Tasks")
@@ -404,7 +542,6 @@ if page == "Dashboard":
                     st.dataframe(pending[["Phase", "Task", "Mentor"]], hide_index=True, use_container_width=True)
                 else:
                     st.success("All checklist tasks complete! ✅")
-            
     with colB:
         with st.container(border=True):
             st.subheader("Upcoming Training")
@@ -431,7 +568,6 @@ elif page == "Requests & Learning":
         with col2:
             with st.container(border=True):
                 st.subheader(f"🛠 {role_key} Systems")
-                # NEW: Layout constrained image column to fix oversized images
                 img_col, text_col = st.columns([1.2, 3])
                 with img_col:
                     st.image(THEME_IMAGES[role_key], use_container_width=True)
@@ -441,7 +577,6 @@ elif page == "Requests & Learning":
     with tab2:
         completed_nav, total_nav = get_navigator_progress()
         st.progress(completed_nav / total_nav if total_nav > 0 else 0, text=f"Course Completion: {completed_nav}/{total_nav}")
-        
         c1, c2 = st.columns(2)
         with c1:
             with st.container(border=True):
@@ -459,7 +594,6 @@ elif page == "Requests & Learning":
     with tab3:
         with st.container(border=True):
             st.subheader("🔗 Essential Tools")
-            # NEW: Layout constrained image column to fix oversized images
             img_col, text_col = st.columns([1, 4])
             with img_col:
                 st.image(THEME_IMAGES[role_key], use_container_width=True)
@@ -478,23 +612,17 @@ elif page == "Checklist":
         unique_phases = df['Phase'].unique().tolist()
         for phase in unique_phases:
             phase_tasks = df[df['Phase'] == phase]
-            
             if search_query:
                 phase_tasks = phase_tasks[phase_tasks['Task'].str.lower().str.contains(search_query) | phase_tasks['Category'].str.lower().str.contains(search_query)]
                 if phase_tasks.empty: continue
-            
             done = int(phase_tasks['Status'].sum())
             total = len(phase_tasks)
-            
             with st.container(border=True):
                 st.markdown(f"### 🗓 {phase} ({done}/{total})")
                 for _, row in phase_tasks.iterrows():
                     idx = int(row['idx'])
                     st.markdown('<div class="checklist-row">', unsafe_allow_html=True)
-                    
-                    # FIX: Using integer ratio columns to prevent huge gaps in wide-mode screens
                     c1, c2, c3 = st.columns([1, 14, 4])
-                    
                     with c1:
                         st.checkbox("Done", value=row['Status'], key=f"chk_{idx}", on_change=toggle_status, args=(idx,), label_visibility="collapsed")
                     with c2:
@@ -507,9 +635,8 @@ elif page == "Checklist":
 
 # PAGE: MENTOR GUIDE
 elif page == "Mentor Guide":
-    st.markdown("## 📘 Mentor’s Playbook")
+    st.markdown("## 📘 Mentor's Playbook")
     st.warning("🔒 **Restricted:** This section is intended for Mentors & Managers to ensure a high-quality onboarding experience.")
-    
     c1, c2 = st.columns(2)
     with c1:
         with st.container(border=True):
@@ -524,7 +651,6 @@ elif page == "Mentor Guide":
 elif page == "Good to Know":
     st.markdown("## 🧩 System Architecture")
     st.markdown("Understanding how data flows between our internal tools is key to mastering your workflow.")
-    
     with st.container(border=True):
         if has_graphviz:
             st.markdown(f"**Data Flow Map: {st.session_state['user_role']}**")
